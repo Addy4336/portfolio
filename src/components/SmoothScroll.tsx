@@ -7,14 +7,24 @@ import { scrollState } from "@/lib/scroll-state";
 
 let lenis: Lenis | null = null;
 
-/** Scrolls to an element or y offset, smoothly when Lenis is running. */
-export function scrollToTarget(target: string | number | HTMLElement) {
+/**
+ * Scrolls to an element or y offset, smoothly when Lenis is running.
+ * `duration` (seconds) makes a slow, linear glide, e.g. to "play" a section.
+ */
+export function scrollToTarget(
+  target: string | number | HTMLElement,
+  options: { duration?: number; linear?: boolean } = {},
+) {
   if (lenis) {
-    lenis.scrollTo(target);
+    lenis.scrollTo(target, {
+      duration: options.duration,
+      easing: options.linear ? (t: number) => t : undefined,
+      lock: options.duration !== undefined,
+    });
     return;
   }
   if (typeof target === "number") {
-    window.scrollTo({ top: target });
+    window.scrollTo({ top: target, behavior: options.duration ? "smooth" : "auto" });
     return;
   }
   const el = typeof target === "string" ? document.querySelector(target) : target;

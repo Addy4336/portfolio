@@ -13,6 +13,8 @@ import { Character } from "./city/Character";
 import { Ground } from "./city/Ground";
 import { HQ, hqBuildings } from "./city/HQ";
 import { generateBuildings } from "./city/layout";
+import { Packet } from "./city/Packet";
+import { Stations } from "./city/Stations";
 import { palette } from "./palette";
 import { Precompile } from "./Precompile";
 
@@ -49,6 +51,8 @@ function City({ agents }: { agents: number }) {
       <Buildings buildings={buildings} />
       <HQ />
       <Character />
+      <Stations />
+      <Packet />
       <Agents count={agents} />
     </group>
   );

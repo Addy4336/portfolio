@@ -56,7 +56,14 @@ export function blockCentre(id: BlockId): [number, number] {
   return [bx * 4, bz * 4];
 }
 
-/** Generic buildings for every block except the ones listed in `reserved`. */
+/** The edge-middle blocks hold the pipeline stations (see route.ts). */
+export const STATION_BLOCKS: BlockId[] = ["north", "east", "south", "west"];
+
+/**
+ * Generic buildings for every block except the ones listed in `reserved`.
+ * Station blocks keep only their four corner cells, leaving a plus-shaped
+ * plaza for the station.
+ */
 export function generateBuildings(reserved: BlockId[] = ["hq"], seed = 7): Building[] {
   const rand = mulberry32(seed);
   const out: Building[] = [];
@@ -65,7 +72,8 @@ export function generateBuildings(reserved: BlockId[] = ["hq"], seed = 7): Build
     if (reserved.includes(id)) continue;
     for (let cx = -1; cx <= 1; cx++) {
       for (let cz = -1; cz <= 1; cz++) {
-        if (rand() < 0.12) continue; // the odd empty lot keeps it from looking like a grid
+        const empty = rand() < 0.12; // the odd empty lot keeps it from looking like a grid
+        if (empty || (STATION_BLOCKS.includes(id) && (cx === 0 || cz === 0))) continue;
         const x = bx * 4 + cx;
         const z = bz * 4 + cz;
         const dist = Math.hypot(x, z);

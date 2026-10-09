@@ -25,6 +25,11 @@ export const CAMERA_KEYS = {
     desktop: { position: [2.35, 0.95, 3.35], target: [0.3, 0.75, 1.0], fov: 40, frame: [0.21, 0] },
     mobile: { position: [2.75, 1.15, 4.4], target: [0.32, 0.5, 1.15], fov: 44, frame: [0, 0.31] },
   },
+  // High over the island so the whole transit loop and its four stations show.
+  pipeline: {
+    desktop: { position: [6.4, 13, 9.6], target: [0.2, 0, 0.5], fov: 38, frame: [-0.21, 0.03] },
+    mobile: { position: [12.5, 27, 17.5], target: [0, 0, 0.6], fov: 40, frame: [0, 0.29] },
+  },
 } satisfies Record<string, CameraShot>;
 
 export type CameraKeyName = keyof typeof CAMERA_KEYS;

@@ -26,6 +26,10 @@ const ALL = [
   { name: "hero-phone", path: "/?tier=1", device: phone, scroll: null, wait: 6000 },
   { name: "about-phone", path: "/?tier=1", device: phone, scroll: ["about", 0.9], wait: 6000 },
   { name: "about-late-phone", path: "/?tier=1", device: phone, scroll: ["about", 1.7], wait: 6000 },
+  { name: "pipeline-listen-desktop", path: "/?tier=2", device: desktop, scroll: ["pipeline", 0.15], wait: 6000 },
+  { name: "pipeline-act-desktop", path: "/?tier=2", device: desktop, scroll: ["pipeline", 1.25], wait: 6000 },
+  { name: "pipeline-speak-desktop", path: "/?tier=2", device: desktop, scroll: ["pipeline", 1.95], wait: 6000 },
+  { name: "pipeline-phone", path: "/?tier=1", device: phone, scroll: ["pipeline", 1.25], wait: 6000 },
   { name: "static-desktop", path: "/?tier=0", device: desktop, scroll: null, wait: 2500 },
 ];
 const list = shots.length ? ALL.filter((s) => shots.includes(s.name)) : ALL;

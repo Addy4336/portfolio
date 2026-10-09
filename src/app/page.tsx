@@ -5,6 +5,7 @@ import { getProjects } from "@/lib/projects";
 import { statusLabel, type Project } from "@/lib/project-schema";
 import { About, type Readout } from "@/sections/About";
 import { Hero } from "@/sections/Hero";
+import { Pipeline } from "@/sections/Pipeline";
 
 /** HQ readouts for the About section, derived from the project files. */
 function readoutsFor(projects: Project[]): Readout[] {
@@ -27,8 +28,9 @@ export default function Home() {
       <main>
         <Hero projects={projects} />
         <About story={site.story} readouts={readoutsFor(projects)} />
+        <Pipeline stages={site.pipeline} toolbox={site.toolbox} />
 
-        {/* Placeholder sections: built out in sections 3–6. */}
+        {/* Placeholder sections: built out in sections 4–6. */}
 
         <section id="work" className="px-4 py-32 sm:px-8">
           <div className="mx-auto max-w-7xl">
