@@ -3,8 +3,9 @@
 A living night-time city run by tiny autonomous agents. Each district is a project, the
 transit loop is the voice/agent pipeline, and the city grows every time a project is added.
 
-Next.js 16 (static export) · React 19 · three.js + React Three Fiber · GSAP + Lenis ·
-Tailwind v4 · MDX. Everything is free and open source.
+Next.js 16 (static export) · React 19 · three.js + React Three Fiber · Lenis ·
+Tailwind v4 · MDX. Everything is free and open source, and the whole city is generated
+in code: no 3D models are downloaded.
 
 ## Run it
 
@@ -65,12 +66,29 @@ scripts/            build helpers (benchmark copy, bundle report)
 
 - All text is real HTML; the 3D layer is progressive and never blocks content.
 - three.js and friends load only after the page is idle, and only on capable devices.
-- GSAP and Lenis load just after first paint; the page reads fine without them.
+- Lenis loads just after first paint; every scroll effect reads the native scroll position.
+- Phones start the city on the first scroll or touch; weak devices and reduced-motion
+  users get a still render of the same city (`public/stills/`).
+- Static props are merged per material after boot (`src/world/StaticBatch.tsx`).
 - Shaders compile asynchronously before the first frame (`src/world/Precompile.tsx`).
 - `node scripts/bundle-report.mjs` after a build prints initial vs lazy JS.
 - `bash scripts/lighthouse.sh http://localhost:4173/ label` (with `npm run preview`
   running) prints Lighthouse scores for mobile and desktop.
 - `?bench` exposes `window.__cityBench()` in the console: real GPU cost per frame.
+
+## Visual QA
+
+```bash
+npm run build && npm run preview   # in one terminal
+node scripts/shoot.mjs              # headless-Chrome screenshots into .shots/
+SHOTS=hero-desktop,bench-t1 node scripts/shoot.mjs           # some shots, plus a GPU bench
+SHOTS=og,still-desktop,still-phone node scripts/shoot.mjs    # re-render share image + stills
+```
+
+## Edit your details
+
+Name, headline, story, pipeline stages, toolbox, hobbies, email, links and the deployed
+URL all live in `content/site.ts`. Empty fields simply don't render.
 
 ## Credits
 

@@ -78,6 +78,26 @@ body {
   height: 52%;
 }
 
+/* Tier 0 (no WebGL, reduced motion, save-data): a still render of the same
+   city, captured by scripts/shoot.mjs. Only downloaded once tier 0 is chosen. */
+html[data-tier="0"] .stage-backdrop {
+  background:
+    linear-gradient(rgb(7 8 12 / 0.12), rgb(7 8 12 / 0.12)),
+    url("/stills/city-desktop.webp") center / cover no-repeat,
+    var(--void);
+}
+@media (orientation: portrait) {
+  html[data-tier="0"] .stage-backdrop {
+    background:
+      linear-gradient(rgb(7 8 12 / 0.12), rgb(7 8 12 / 0.12)),
+      url("/stills/city-phone.webp") center top / cover no-repeat,
+      var(--void);
+  }
+}
+html[data-tier="0"] .stage-grid {
+  display: none;
+}
+
 .stage-canvas {
   position: absolute;
   inset: 0;
@@ -136,8 +156,19 @@ body {
   color: var(--paper);
   transition: color 220ms ease;
 }
+/* Words not yet "spoken" are invisible (as in real live captions) but keep
+   their space and stay in the accessibility tree; once heard they pass
+   contrast as grey interim text, then white final text. */
 .transcript[data-armed] [data-w] {
-  color: rgb(237 234 226 / 0.13);
+  opacity: 0;
+  transition:
+    opacity 220ms ease,
+    color 220ms ease;
+}
+.transcript[data-armed] [data-w][data-s="i"],
+.transcript[data-armed] [data-w][data-s="c"],
+.transcript[data-armed] [data-w][data-s="f"] {
+  opacity: 1;
 }
 .transcript[data-armed] [data-w][data-s="i"],
 .transcript[data-armed] [data-w][data-s="c"] {

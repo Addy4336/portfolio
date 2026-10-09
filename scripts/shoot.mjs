@@ -16,6 +16,7 @@ const OUT = join(process.cwd(), ".shots");
 
 const desktop = { width: 1440, height: 900, mobile: false, scale: 1 };
 const phone = { width: 390, height: 844, mobile: true, scale: 2 };
+const og = { width: 1200, height: 630, mobile: false, scale: 1 };
 
 // scroll: an element id plus a fraction of the viewport height past its top, or a pixel offset.
 const shots = (process.env.SHOTS ?? "").split(",").filter(Boolean);
@@ -45,6 +46,11 @@ const ALL = [
   { name: "contact-desktop", path: "/?tier=2", device: desktop, scroll: ["contact", 0.05], wait: 6000 },
   { name: "flare-desktop", path: "/?tier=2", device: desktop, scroll: ["contact", 0.05], wait: 6000, eval: "window.dispatchEvent(new Event('city:flare'))", after: 1300 },
   { name: "contact-phone", path: "/?tier=1", device: phone, scroll: ["contact", 0.05], wait: 6000 },
+  // Renders of the city alone (page HTML hidden), saved into public/ for the site to use:
+  // the share image and the tier-0 stills. Re-run after the city changes: SHOTS=og,still-desktop,still-phone
+  { name: "og", path: "/?tier=2", device: og, scroll: null, wait: 7000, still: { file: "public/og.jpg", format: "jpeg", quality: 88, keepHtml: true } },
+  { name: "still-desktop", path: "/?tier=2", device: desktop, scroll: null, wait: 7000, still: { file: "public/stills/city-desktop.webp", format: "webp", quality: 80 } },
+  { name: "still-phone", path: "/?tier=2", device: phone, scroll: null, wait: 7000, still: { file: "public/stills/city-phone.webp", format: "webp", quality: 78 } },
   // Performance: renders 120 frames back to back via the ?bench hook and prints the result.
   { name: "bench-t1", path: "/?tier=1&bench", device: desktop, scroll: null, wait: 6000, bench: true },
   { name: "bench-t2", path: "/?tier=2&bench", device: desktop, scroll: null, wait: 6000, bench: true },
@@ -121,6 +127,18 @@ async function main() {
       if (shot.eval) {
         await send("Runtime.evaluate", { expression: shot.eval });
         await sleep(shot.after ?? 1000);
+      }
+      if (shot.still) {
+        if (!shot.still.keepHtml) await send("Runtime.evaluate", {
+          expression: "document.querySelector('body > .relative').style.visibility = 'hidden'",
+        });
+        await sleep(300);
+        const { data } = await send("Page.captureScreenshot", { format: shot.still.format, quality: shot.still.quality });
+        const file = join(process.cwd(), shot.still.file);
+        mkdirSync(join(file, ".."), { recursive: true });
+        writeFileSync(file, Buffer.from(data, "base64"));
+        console.log(`${file} (${Math.round(data.length * 0.75 / 1024)} KB)`);
+        continue;
       }
       const { data } = await send("Page.captureScreenshot", { format: "png" });
       const file = join(OUT, `${shot.name}.png`);

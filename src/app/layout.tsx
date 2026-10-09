@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Unbounded } from "next/font/google";
+import { site } from "@content/site";
 import { Nav } from "@/components/Nav";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import { assignDistricts } from "@/lib/districts";
@@ -10,16 +11,35 @@ import "./globals.css";
 const display = Unbounded({ variable: "--font-unbounded", subsets: ["latin"] });
 const sans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 // Only used for small labels, so it stays off the critical path: not
-// preloaded, and it swaps in when ready.
-const mono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"], preload: false });
+// preloaded, and `optional` means a late arrival never swaps in mid-page
+// (that reflowed the labels and caused layout shift). It's still fetched and
+// cached, so later page views use it.
+const mono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+  preload: false,
+  display: "optional",
+});
+
+const description = `${site.name} is an ${site.role.toLowerCase()} focused on ${site.focus
+  .join(" and ")
+  .toLowerCase()}. Explore a living city of agents, one district per project.`;
 
 export const metadata: Metadata = {
+  ...(site.url ? { metadataBase: new URL(site.url) } : {}),
   title: {
-    default: "Adi · AI engineer building agents that listen and act",
-    template: "%s · Adi",
+    default: `${site.name} · ${site.headline.replace(/\.$/, "")}`,
+    template: `%s · ${site.name}`,
   },
-  description:
-    "Adi is an AI engineer focused on agentic AI and voice AI. Explore a living city of agents, one district per project.",
+  description,
+  openGraph: {
+    type: "website",
+    siteName: site.name,
+    title: `${site.name} · ${site.role}`,
+    description,
+    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "A night-time city of tiny agents, one district per project" }],
+  },
+  twitter: { card: "summary_large_image", images: ["/og.jpg"] },
 };
 
 export const viewport: Viewport = {
@@ -37,8 +57,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Stage projects={assignDistricts(getProjects())} />
         <SmoothScroll />
         <div className="relative z-10">
+          <a
+            href="#main"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-full focus:bg-signal focus:px-4 focus:py-2 focus:text-void"
+          >
+            Skip to content
+          </a>
           <Nav />
-          {children}
+          <div id="main">{children}</div>
         </div>
       </body>
     </html>

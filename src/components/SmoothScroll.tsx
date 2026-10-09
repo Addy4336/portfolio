@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import type Lenis from "lenis";
-import { loadMotion } from "@/lib/motion";
 import { scrollState } from "@/lib/scroll-state";
 
 let lenis: Lenis | null = null;
@@ -32,10 +31,10 @@ export function scrollToTarget(
 }
 
 /**
- * Lenis smooth scrolling, driven by GSAP's ticker so ScrollTrigger and the 3D
- * scene read the same scroll position on the same frame. Both libraries load
- * after first paint; until then, and for people who prefer reduced motion,
- * the page scrolls natively.
+ * Lenis smooth scrolling, loaded after first paint and running on its own
+ * animation loop. Every scroll effect on the site reads the native scroll
+ * position, so the page works the same before Lenis arrives and for people
+ * who prefer reduced motion (who never get it).
  */
 export function SmoothScroll() {
   useEffect(() => {
@@ -52,29 +51,21 @@ export function SmoothScroll() {
 
     let cancelled = false;
     let cleanup = () => {};
-
-    Promise.all([loadMotion(), import("lenis")]).then(
-      ([{ gsap, ScrollTrigger }, { default: LenisCtor }]) => {
-        if (cancelled) return;
-        window.removeEventListener("scroll", updateFromNative);
-        const instance = new LenisCtor({ autoRaf: false, anchors: true, lerp: 0.1 });
-        lenis = instance;
-        const off = instance.on("scroll", (l) => {
-          scrollState.progress = l.progress;
-          scrollState.velocity = l.velocity;
-          ScrollTrigger.update();
-        });
-        const tick = (time: number) => instance.raf(time * 1000);
-        gsap.ticker.add(tick);
-        gsap.ticker.lagSmoothing(0);
-        cleanup = () => {
-          off();
-          gsap.ticker.remove(tick);
-          instance.destroy();
-          lenis = null;
-        };
-      },
-    );
+    import("lenis").then(({ default: LenisCtor }) => {
+      if (cancelled) return;
+      window.removeEventListener("scroll", updateFromNative);
+      const instance = new LenisCtor({ autoRaf: true, anchors: true, lerp: 0.1 });
+      lenis = instance;
+      const off = instance.on("scroll", (l) => {
+        scrollState.progress = l.progress;
+        scrollState.velocity = l.velocity;
+      });
+      cleanup = () => {
+        off();
+        instance.destroy();
+        lenis = null;
+      };
+    });
 
     return () => {
       cancelled = true;

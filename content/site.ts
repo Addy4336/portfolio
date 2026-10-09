@@ -4,6 +4,8 @@
  * content/projects/*.mdx.
  */
 export const site = {
+  /** The deployed address, e.g. "https://adi.is-a.dev". Used for links in search results and shares. */
+  url: "" as string,
   name: "Adi",
   role: "AI engineer",
   focus: ["Agentic AI", "Voice AI"],
@@ -83,11 +85,11 @@ export const site = {
    */
   offClock: [] as { title: string; note: string }[],
   /** Public contact email. Leave empty to hide the email button. */
-  email: "",
+  email: "" as string,
   /** Path under /public, e.g. "/resume.pdf". Leave empty to hide. */
-  resume: "",
+  resume: "" as string,
   links: {
     github: "https://github.com/Addy4336",
-    linkedin: "",
+    linkedin: "" as string,
   },
 } as const;

@@ -5,6 +5,7 @@ import { useMemo, useRef } from "react";
 import { Group, MeshBasicMaterial, MeshLambertMaterial } from "three";
 import { boot } from "../boot";
 import { palette } from "../palette";
+import { StaticBatch } from "../StaticBatch";
 import { Character } from "./Character";
 import { useUnderglowMaterial } from "./Ground";
 import { ISLAND_HALF } from "./layout";
@@ -80,6 +81,7 @@ export function OffClock({ items }: { items: readonly Item[] }) {
         <boxGeometry args={[Math.hypot(bridgeLen, cy), 0.02, 0.06]} />
       </mesh>
       <group ref={root} position={OFFCLOCK_CENTRE}>
+        <StaticBatch>
         <mesh position-y={-0.25} material={mats.slab}>
           <boxGeometry args={[HALF_W * 2, 0.5, HALF_D * 2]} />
         </mesh>
@@ -112,7 +114,7 @@ export function OffClock({ items }: { items: readonly Item[] }) {
           <mesh position={[0.18, 1.05, 0.05]} material={mats.leaves}>
             <sphereGeometry args={[0.24, 14, 10]} />
           </mesh>
-          <group ref={fairy}>
+          <group ref={fairy} userData={{ dynamic: true }}>
             {lights.map((p, i) => (
               <mesh key={i} position={p} material={i % 3 ? mats.warm : mats.lime}>
                 <sphereGeometry args={[0.02, 6, 4]} />
@@ -150,6 +152,7 @@ export function OffClock({ items }: { items: readonly Item[] }) {
         {items.slice(0, signSpots.length).map((item, i) => (
           <Sign key={item.title} lines={["off the clock", item.title]} width={1.0} position={signSpots[i]} accent={palette.violet} />
         ))}
+        </StaticBatch>
       </group>
     </group>
   );

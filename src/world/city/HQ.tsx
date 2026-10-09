@@ -4,6 +4,7 @@ import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import type { Group, Mesh } from "three";
 import { boot } from "../boot";
+import { StaticBatch } from "../StaticBatch";
 import { palette } from "../palette";
 import type { Building } from "./layout";
 
@@ -49,7 +50,7 @@ export function HQ() {
   });
 
   return (
-    <group>
+    <StaticBatch>
       {/* plaza and podium */}
       <mesh position-y={0.03}>
         <boxGeometry args={[2.9, 0.06, 2.9]} />
@@ -86,7 +87,7 @@ export function HQ() {
         </mesh>
       </group>
       {/* beacon: a slowly turning ring around a pulsing light */}
-      <group ref={beacon}>
+      <group ref={beacon} userData={{ dynamic: true }}>
         <mesh rotation-x={Math.PI / 2}>
           <torusGeometry args={[0.3, 0.018, 8, 48]} />
           <meshBasicMaterial color={palette.signal} toneMapped={false} />
@@ -96,6 +97,6 @@ export function HQ() {
           <meshBasicMaterial color={palette.signal} toneMapped={false} />
         </mesh>
       </group>
-    </group>
+    </StaticBatch>
   );
 }

@@ -13,6 +13,7 @@ import {
 } from "three";
 import { pipelineState } from "@/lib/pipeline-state";
 import { boot } from "../boot";
+import { StaticBatch } from "../StaticBatch";
 import { palette } from "../palette";
 import { LEG_STATION, packetAt, STATIONS, type StationId } from "./route";
 
@@ -99,7 +100,7 @@ function Ear({ mats }: { mats: Mats }) {
         <mesh position-y={0.12} material={mats.dark}>
           <cylinderGeometry args={[0.012, 0.012, 0.24, 6]} />
         </mesh>
-        <mesh ref={horn} position-y={0.24} material={mats.lime}>
+        <mesh ref={horn} position-y={0.24} material={mats.lime} userData={{ dynamic: true }}>
           <sphereGeometry args={[0.045, 12, 8]} />
         </mesh>
       </group>
@@ -131,10 +132,10 @@ function Brain({ mats }: { mats: Mats }) {
       <mesh position-y={0.62} material={mats.dark}>
         <cylinderGeometry args={[0.07, 0.1, 0.55, 10]} />
       </mesh>
-      <mesh ref={core} position-y={1.12} material={coreMat}>
+      <mesh ref={core} position-y={1.12} material={coreMat} userData={{ dynamic: true }}>
         <sphereGeometry args={[0.26, 24, 16]} />
       </mesh>
-      <group ref={rings} position-y={1.12}>
+      <group ref={rings} position-y={1.12} userData={{ dynamic: true }}>
         <mesh rotation-x={Math.PI / 2.4} material={mats.lime}>
           <torusGeometry args={[0.44, 0.012, 8, 64]} />
         </mesh>
@@ -178,7 +179,7 @@ function Hands({ mats }: { mats: Mats }) {
       <mesh position={[-0.55, 0.85, -0.25]} material={mats.dark}>
         <boxGeometry args={[0.07, 1.7, 0.07]} />
       </mesh>
-      <group ref={arm} position={[-0.55, 1.68, -0.25]}>
+      <group ref={arm} position={[-0.55, 1.68, -0.25]} userData={{ dynamic: true }}>
         <mesh position-x={0.42} material={mats.pale}>
           <boxGeometry args={[0.95, 0.05, 0.05]} />
         </mesh>
@@ -236,7 +237,7 @@ function Voice({ mats }: { mats: Mats }) {
           </mesh>
         </group>
       ))}
-      <group ref={rings} position-y={0.8}>
+      <group ref={rings} position-y={0.8} userData={{ dynamic: true }}>
         {ringMats.map((m, i) => (
           <mesh key={i} material={m}>
             <torusGeometry args={[0.34, 0.012, 6, 40]} />
@@ -270,16 +271,18 @@ export function Stations() {
 
   return (
     <group ref={root}>
-      {(Object.keys(STATIONS) as StationId[]).map((id) => {
-        const [x, z] = STATIONS[id];
-        const Part = STATION_PARTS[id];
-        return (
-          <group key={id} position={[x, 0, z]} rotation-y={Math.atan2(-x, -z)}>
-            <StationBase id={id} />
-            <Part mats={mats} />
-          </group>
-        );
-      })}
+      <StaticBatch>
+        {(Object.keys(STATIONS) as StationId[]).map((id) => {
+          const [x, z] = STATIONS[id];
+          const Part = STATION_PARTS[id];
+          return (
+            <group key={id} position={[x, 0, z]} rotation-y={Math.atan2(-x, -z)}>
+              <StationBase id={id} />
+              <Part mats={mats} />
+            </group>
+          );
+        })}
+      </StaticBatch>
     </group>
   );
 }

@@ -2,7 +2,7 @@
 
 import { Canvas, useFrame } from "@react-three/fiber";
 import { PerformanceMonitor } from "@react-three/drei";
-import { lazy, Suspense, useCallback, useMemo, useRef, useState } from "react";
+import { lazy, startTransition, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { QUALITY, type Tier } from "@/lib/tier";
 import { Bench } from "./Bench";
 import { boot, BOOT_SECONDS, CITY_READY_EVENT, type CityReadyDetail } from "./boot";
@@ -53,33 +53,68 @@ function BootClock({ agents, onReady }: { agents: number; onReady: () => void })
   return null;
 }
 
-function City({ agents, projects }: { agents: number; projects: CityProject[] }) {
+function City({
+  agents,
+  projects,
+  onStaged,
+}: {
+  agents: number;
+  projects: CityProject[];
+  onStaged: () => void;
+}) {
   // Generic filler everywhere except HQ and the four project districts.
   const buildings = useMemo(
     () => [...generateBuildings(["hq", "studio", "estate", "lab", "workshop"]), ...hqBuildings],
     [],
   );
+  // Mount the city in stages, each as a separate (interruptible) transition,
+  // so creating hundreds of three.js objects never blocks the page in one
+  // long task. The frame loop is off until everything is in and compiled.
+  const [stage, setStage] = useState(0);
+  useEffect(() => {
+    if (stage >= LAST_STAGE) {
+      onStaged();
+      return;
+    }
+    const t = setTimeout(() => startTransition(() => setStage((s) => s + 1)), 0);
+    return () => clearTimeout(t);
+  }, [stage, onStaged]);
+
   return (
+    // Named groups so ?bench can report draw calls per part.
     <group>
-      <Ground />
-      <Buildings buildings={buildings} />
-      <HQ />
-      <Character />
-      <Stations />
-      <Packet />
-      <Districts projects={projects} />
-      <OffClock items={site.offClock} />
-      <Flare />
-      <Agents count={agents} />
+      <group name="ground"><Ground /></group>
+      <group name="buildings"><Buildings buildings={buildings} /></group>
+      <group name="hq"><HQ /></group>
+      {stage >= 1 && (
+        <>
+          <group name="adi"><Character /></group>
+          <group name="stations"><Stations /></group>
+          <group name="packet"><Packet /></group>
+          <group name="agents"><Agents count={agents} /></group>
+        </>
+      )}
+      {stage >= 2 && <group name="districts"><Districts projects={projects} /></group>}
+      {stage >= 3 && (
+        <>
+          <group name="offclock"><OffClock items={site.offClock} /></group>
+          <group name="flare"><Flare /></group>
+        </>
+      )}
     </group>
   );
 }
+
+const LAST_STAGE = 3;
 
 export default function Scene({ tier, isMobile, projects, onReady }: SceneProps) {
   const quality = QUALITY[tier];
   // The tier is fixed for the session; PerformanceMonitor nudges DPR within its range.
   const [dpr, setDpr] = useState(quality.dpr[1]);
-  // Nothing renders until every shader has compiled in the background.
+  // Nothing renders until the whole city is mounted and every shader has
+  // compiled in the background.
+  const [staged, setStaged] = useState(false);
+  const onStaged = useCallback(() => setStaged(true), []);
   const [compiled, setCompiled] = useState(false);
   const onCompiled = useCallback(() => setCompiled(true), []);
   const agents = isMobile ? Math.round(quality.agents * 0.6) : quality.agents;
@@ -106,9 +141,9 @@ export default function Scene({ tier, isMobile, projects, onReady }: SceneProps)
       <hemisphereLight args={["#8d97c9", palette.ground, 0.55]} />
       <directionalLight position={[-6, 12, 5]} intensity={1.1} color="#c3cbff" />
       <pointLight position={[0, 1.2, 0]} intensity={6} distance={9} color={palette.violet} />
-      <City agents={agents} projects={projects} />
+      <City agents={agents} projects={projects} onStaged={onStaged} />
       <CameraRig isMobile={isMobile} />
-      <Precompile onDone={onCompiled} />
+      {staged && <Precompile onDone={onCompiled} />}
       <BootClock agents={agents} onReady={onReady} />
       <Bench />
       {quality.bloom && (

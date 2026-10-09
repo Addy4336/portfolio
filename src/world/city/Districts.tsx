@@ -1,12 +1,22 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
-import { AdditiveBlending, Group, MeshBasicMaterial, MeshLambertMaterial } from "three";
+import { useLayoutEffect, useMemo, useRef } from "react";
+import {
+  AdditiveBlending,
+  BoxGeometry,
+  Group,
+  InstancedMesh,
+  MeshBasicMaterial,
+  MeshLambertMaterial,
+  Object3D,
+  SphereGeometry,
+} from "three";
 import { DISTRICT_NAMES, WORKSHOP_PLOTS, type CityProject, type DistrictId } from "@/lib/districts";
 import { boot } from "../boot";
 import { palette } from "../palette";
 import { blockCentre } from "./layout";
+import { StaticBatch } from "../StaticBatch";
 import { Scaffold } from "./Scaffold";
 import { Sign } from "./Sign";
 
@@ -89,7 +99,7 @@ function Studio({ project, mats }: { project?: CityProject; mats: Mats }) {
       <mesh position={[0.5, 1.4, 0.1]} material={mats.dark}>
         <cylinderGeometry args={[0.02, 0.03, 0.6, 6]} />
       </mesh>
-      <group ref={rings} position={[0.5, 1.72, 0.1]}>
+      <group ref={rings} position={[0.5, 1.72, 0.1]} userData={{ dynamic: true }}>
         {ringMats.map((m, i) => (
           <mesh key={i} rotation-x={Math.PI / 2} material={m}>
             <torusGeometry args={[0.25, 0.01, 6, 36]} />
@@ -171,7 +181,7 @@ function Estate({ project, mats }: { project?: CityProject; mats: Mats }) {
           </group>
         ),
       )}
-      <group ref={tags}>
+      <group ref={tags} userData={{ dynamic: true }}>
         {lots.slice(0, built).map(([x, z], i) => (
           <mesh key={i} position={[x, 0.92, z]} material={i % 2 ? mats.violet : mats.lime}>
             <planeGeometry args={[0.22, 0.1]} />
@@ -179,7 +189,7 @@ function Estate({ project, mats }: { project?: CityProject; mats: Mats }) {
         ))}
       </group>
       {built > 0 && (
-        <group ref={scanner} position={[lots[0][0], 1.2, lots[0][1]]}>
+        <group ref={scanner} position={[lots[0][0], 1.2, lots[0][1]]} userData={{ dynamic: true }}>
           <mesh material={mats.pale}>
             <capsuleGeometry args={[0.06, 0.08, 3, 8]} />
           </mesh>
@@ -229,7 +239,7 @@ function Lab({ project, mats }: { project?: CityProject; mats: Mats }) {
       {progress < 1 && (
         <>
           <Scaffold width={2.0} depth={2.0} height={1.45} position={[0, 0.04, 0]} />
-          <group ref={lights}>
+          <group ref={lights} userData={{ dynamic: true }}>
             {[
               [1, 1],
               [1, -1],
@@ -262,21 +272,81 @@ function Lab({ project, mats }: { project?: CityProject; mats: Mats }) {
   );
 }
 
+const OUTLINE_EDGES: [number, number, number, number][] = [
+  [0, -0.33, 0.62, 0.012],
+  [0, 0.33, 0.62, 0.012],
+  [-0.31, 0, 0.012, 0.66],
+  [0.31, 0, 0.012, 0.66],
+];
+
+/**
+ * The empty Workshop plots: a post with a blinking light and a lime outline
+ * each. Three instanced meshes for all of them (up to 9 plots would otherwise
+ * be 54 draw calls).
+ */
+function FreePlots({ plots, mats }: { plots: [number, number][]; mats: Mats }) {
+  const poles = useRef<InstancedMesh>(null);
+  const dots = useRef<InstancedMesh>(null);
+  const edges = useRef<InstancedMesh>(null);
+  const geo = useMemo(() => ({ box: new BoxGeometry(1, 1, 1), dot: new SphereGeometry(0.03, 8, 6) }), []);
+  const outline = useMemo(
+    () => new MeshBasicMaterial({ color: palette.signal, toneMapped: false, transparent: true, opacity: 0.35 }),
+    [],
+  );
+  const dummy = useMemo(() => new Object3D(), []);
+
+  useLayoutEffect(() => {
+    const p = poles.current;
+    const e = edges.current;
+    if (!p || !e) return;
+    plots.forEach(([x, z], i) => {
+      dummy.position.set(x, 0.25, z);
+      dummy.scale.set(0.025, 0.42, 0.025);
+      dummy.updateMatrix();
+      p.setMatrixAt(i, dummy.matrix);
+      OUTLINE_EDGES.forEach(([ox, oz, w, d], k) => {
+        dummy.position.set(x + ox, 0.045, z + oz);
+        dummy.scale.set(w, 0.006, d);
+        dummy.updateMatrix();
+        e.setMatrixAt(i * OUTLINE_EDGES.length + k, dummy.matrix);
+      });
+    });
+    p.instanceMatrix.needsUpdate = true;
+    e.instanceMatrix.needsUpdate = true;
+    p.computeBoundingSphere();
+    e.computeBoundingSphere();
+  }, [plots, dummy]);
+
+  useFrame(({ clock }) => {
+    const d = dots.current;
+    if (!d) return;
+    plots.forEach(([x, z], i) => {
+      const on = Math.sin(clock.elapsedTime * 2.4 + i) > -0.2;
+      dummy.position.set(x, 0.48, z);
+      dummy.scale.setScalar(on ? 1 : 0.0001);
+      dummy.updateMatrix();
+      d.setMatrixAt(i, dummy.matrix);
+    });
+    d.instanceMatrix.needsUpdate = true;
+  });
+
+  if (!plots.length) return null;
+  return (
+    <group>
+      <instancedMesh ref={poles} args={[geo.box, mats.dark, plots.length]} />
+      <instancedMesh ref={dots} args={[geo.dot, mats.lime, plots.length]} frustumCulled={false} />
+      <instancedMesh ref={edges} args={[geo.box, outline, plots.length * OUTLINE_EDGES.length]} />
+    </group>
+  );
+}
+
 /** Side projects: one kiosk per project; the free plots wait with "coming soon" posts. */
 function Workshop({ projects, mats }: { projects: CityProject[]; mats: Mats }) {
-  const posts = useRef<Group>(null);
   const plots = useMemo(
     () => [-1, 0, 1].flatMap((j) => [-1, 0, 1].map((i) => [i * 0.95, j * 0.95] as [number, number])),
     [],
   );
   const kiosks = projects.slice(0, WORKSHOP_PLOTS);
-  const outline = useMemo(() => new MeshBasicMaterial({ color: palette.signal, toneMapped: false, transparent: true, opacity: 0.35 }), []);
-  useFrame(({ clock }) => {
-    posts.current?.children.forEach((p, i) => {
-      const dot = p.children[1];
-      if (dot) dot.visible = Math.sin(clock.elapsedTime * 2.4 + i) > -0.2;
-    });
-  });
   return (
     <group>
       <mesh position-y={0.02} material={mats.slab}>
@@ -298,29 +368,7 @@ function Workshop({ projects, mats }: { projects: CityProject[]; mats: Mats }) {
           </group>
         );
       })}
-      <group ref={posts}>
-        {plots.slice(kiosks.length).map(([x, z], i) => (
-          <group key={i} position={[x, 0, z]}>
-            <mesh position-y={0.25} material={mats.dark}>
-              <boxGeometry args={[0.025, 0.42, 0.025]} />
-            </mesh>
-            <mesh position-y={0.48} material={mats.lime}>
-              <sphereGeometry args={[0.03, 8, 6]} />
-            </mesh>
-            {/* plot outline */}
-            {[
-              [0, -0.33, 0.62, 0.012],
-              [0, 0.33, 0.62, 0.012],
-              [-0.31, 0, 0.012, 0.66],
-              [0.31, 0, 0.012, 0.66],
-            ].map(([ox, oz, w, d], e) => (
-              <mesh key={e} position={[ox, 0.045, oz]} material={outline}>
-                <boxGeometry args={[w, 0.006, d]} />
-              </mesh>
-            ))}
-          </group>
-        ))}
-      </group>
+      <FreePlots plots={plots.slice(kiosks.length)} mats={mats} />
       <Sign
         lines={[
           DISTRICT_NAMES.workshop,
@@ -342,6 +390,7 @@ export function Districts({ projects }: { projects: CityProject[] }) {
   });
   return (
     <group ref={root}>
+      <StaticBatch>
       <DistrictFrame id="studio">
         <Studio project={one("studio")} mats={mats} />
       </DistrictFrame>
@@ -354,6 +403,7 @@ export function Districts({ projects }: { projects: CityProject[] }) {
       <DistrictFrame id="workshop">
         <Workshop projects={projects.filter((p) => p.district === "workshop")} mats={mats} />
       </DistrictFrame>
+      </StaticBatch>
     </group>
   );
 }

@@ -145,7 +145,7 @@ export function Character({
   });
 
   return (
-    <group ref={root} position={position} rotation-y={facing}>
+    <group ref={root} position={position} rotation-y={facing} userData={{ dynamic: true }}>
       {/* "you are here" pulse on the plaza */}
       {!sitting && (
         <mesh ref={marker} rotation-x={-Math.PI / 2} position-y={0.004} material={mats.ring}>
