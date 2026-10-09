@@ -68,20 +68,14 @@ body {
     var(--void);
 }
 
-/* Floor grid (src/world/BackdropGrid.tsx), faded at both ends by a gradient
-   laid over it. Deliberately no CSS 3D transform or mask: that combination
+/* Floor grid (src/world/BackdropGrid.tsx); its fade is a gradient inside the
+   SVG. Deliberately no CSS 3D transform, mask or overlay: that combination
    delayed first paint by ~1s on mobile. */
 .stage-grid {
   position: absolute;
   inset: 48% 0 0;
   width: 100%;
   height: 52%;
-}
-.stage-backdrop::after {
-  content: "";
-  position: absolute;
-  inset: 48% 0 0;
-  background: linear-gradient(to bottom, var(--void) 0%, transparent 35%, transparent 55%, var(--void) 100%);
 }
 
 .stage-canvas {

@@ -32,7 +32,16 @@ export function BackdropGrid() {
       aria-hidden="true"
       focusable="false"
     >
-      <path d={d} stroke="#EDEAE2" strokeOpacity={0.12} strokeWidth={1} fill="none" vectorEffect="non-scaling-stroke" />
+      <defs>
+        {/* Fades the lines in from the horizon and out at the bottom edge. */}
+        <linearGradient id="stage-grid-fade" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={H}>
+          <stop offset="0" stopColor="#EDEAE2" stopOpacity="0" />
+          <stop offset="0.35" stopColor="#EDEAE2" stopOpacity="0.13" />
+          <stop offset="0.6" stopColor="#EDEAE2" stopOpacity="0.1" />
+          <stop offset="1" stopColor="#EDEAE2" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={d} stroke="url(#stage-grid-fade)" strokeWidth={1} fill="none" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }
