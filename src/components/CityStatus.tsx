@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   BOOT_SECONDS,
   CITY_READY_EVENT,
+  CITY_STANDBY_EVENT,
   CITY_TIER_EVENT,
   type CityReadyDetail,
   type CityTierDetail,
@@ -25,6 +26,10 @@ export function CityStatus({ districts, live, availability }: Props) {
     const onTier = (e: Event) => {
       if ((e as CustomEvent<CityTierDetail>).detail.tier === 0) setAgents("static view");
     };
+    const onStandby = (e: Event) => {
+      const waking = (e as CustomEvent<{ waking?: boolean }>).detail?.waking;
+      setAgents(waking ? "waking…" : "on standby");
+    };
     const onReady = (e: Event) => {
       const total = (e as CustomEvent<CityReadyDetail>).detail.agents;
       const start = performance.now() + 250;
@@ -35,10 +40,12 @@ export function CityStatus({ districts, live, availability }: Props) {
       };
       raf = requestAnimationFrame(step);
     };
+    window.addEventListener(CITY_STANDBY_EVENT, onStandby);
     window.addEventListener(CITY_TIER_EVENT, onTier);
     window.addEventListener(CITY_READY_EVENT, onReady);
     return () => {
       cancelAnimationFrame(raf);
+      window.removeEventListener(CITY_STANDBY_EVENT, onStandby);
       window.removeEventListener(CITY_TIER_EVENT, onTier);
       window.removeEventListener(CITY_READY_EVENT, onReady);
     };

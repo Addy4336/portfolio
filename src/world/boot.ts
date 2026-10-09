@@ -14,6 +14,9 @@ export const boot = {
 export const CITY_READY_EVENT = "city:ready";
 export type CityReadyDetail = { agents: number };
 
+/** Fired on window when the city is waiting for a first touch/scroll (touch devices). */
+export const CITY_STANDBY_EVENT = "city:standby";
+
 /** Fired on window once the device tier is known (0 means no 3D will load). */
 export const CITY_TIER_EVENT = "city:tier";
 export type CityTierDetail = { tier: number };

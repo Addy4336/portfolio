@@ -3,7 +3,7 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { detectTier, type TierResult } from "@/lib/tier";
 import { BackdropGrid } from "./BackdropGrid";
-import { CITY_TIER_EVENT, type CityTierDetail } from "./boot";
+import { CITY_STANDBY_EVENT, CITY_TIER_EVENT, type CityTierDetail } from "./boot";
 
 // The whole 3D stack (three, R3F, drei, postprocessing) lives behind this one
 // import, so it is never part of the first page load. Both the early prefetch
@@ -55,7 +55,8 @@ function afterFirstPaint(cb: () => void) {
 /**
  * Fixed, full-screen layer behind the page. The CSS backdrop shows instantly
  * (and is all tier-0 visitors get); the WebGL city fades in over it once the
- * page is idle and the device can handle it.
+ * page has painted and the device can handle it (on touch devices, after the
+ * first interaction).
  */
 export function Stage() {
   const [tier, setTier] = useState<TierResult | null>(null);
@@ -63,7 +64,7 @@ export function Stage() {
 
   useEffect(() => {
     let cancelled = false;
-    afterFirstPaint(() => {
+    const start = () => {
       // Start downloading the 3D chunk while the GPU check runs, unless this
       // visitor will certainly get the static view.
       const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } })
@@ -80,9 +81,30 @@ export function Stage() {
         );
         setTier(result);
       });
+    };
+
+    // Phones and tablets start the city on the visitor's first scroll, touch
+    // or key press: the hero reads instantly and the 3D work never competes
+    // with the first paint on a slow CPU. Desktops start it right after paint.
+    const touchFirst = window.matchMedia("(pointer: coarse)").matches;
+    const forced = new URLSearchParams(window.location.search).has("tier");
+    const intents = ["touchstart", "pointerdown", "wheel", "scroll", "keydown"] as const;
+    const onIntent = () => {
+      intents.forEach((type) => window.removeEventListener(type, onIntent));
+      window.dispatchEvent(new CustomEvent(CITY_STANDBY_EVENT, { detail: { waking: true } }));
+      start();
+    };
+    afterFirstPaint(() => {
+      if (cancelled) return;
+      if (!touchFirst || forced) start();
+      else {
+        intents.forEach((type) => window.addEventListener(type, onIntent, { passive: true }));
+        window.dispatchEvent(new Event(CITY_STANDBY_EVENT));
+      }
     });
     return () => {
       cancelled = true;
+      intents.forEach((type) => window.removeEventListener(type, onIntent));
     };
   }, []);
 
