@@ -6,7 +6,9 @@ import "./globals.css";
 
 const display = Unbounded({ variable: "--font-unbounded", subsets: ["latin"] });
 const sans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const mono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+// Only used for small labels, so it stays off the critical path: not
+// preloaded, and it swaps in when ready.
+const mono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"], preload: false });
 
 export const metadata: Metadata = {
   title: {

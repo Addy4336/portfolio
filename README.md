@@ -66,7 +66,11 @@ scripts/            build helpers (benchmark copy, bundle report)
 - All text is real HTML; the 3D layer is progressive and never blocks content.
 - three.js and friends load only after the page is idle, and only on capable devices.
 - GSAP and Lenis load just after first paint; the page reads fine without them.
+- Shaders compile asynchronously before the first frame (`src/world/Precompile.tsx`).
 - `node scripts/bundle-report.mjs` after a build prints initial vs lazy JS.
+- `bash scripts/lighthouse.sh http://localhost:4173/ label` (with `npm run preview`
+  running) prints Lighthouse scores for mobile and desktop.
+- `?bench` exposes `window.__cityBench()` in the console: real GPU cost per frame.
 
 ## Credits
 

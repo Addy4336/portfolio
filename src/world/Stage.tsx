@@ -1,23 +1,55 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { detectTier, type TierResult } from "@/lib/tier";
+import { BackdropGrid } from "./BackdropGrid";
+import { CITY_TIER_EVENT, type CityTierDetail } from "./boot";
 
-// The whole 3D stack (three, R3F, drei, postprocessing) lives behind this
-// import, so it is never part of the first page load.
-const Scene = dynamic(() => import("./Scene"), { ssr: false });
+// The whole 3D stack (three, R3F, drei, postprocessing) lives behind this one
+// import, so it is never part of the first page load. Both the early prefetch
+// and the lazy component go through it, so the bundler emits a single chunk.
+const loadScene = () => import("./Scene");
+const Scene = lazy(loadScene);
 
-function whenIdle(cb: () => void) {
-  const run = () => {
-    if (typeof window.requestIdleCallback === "function") {
-      window.requestIdleCallback(cb, { timeout: 1500 });
-    } else {
-      setTimeout(cb, 200);
-    }
+function onIdle(cb: () => void) {
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(cb, { timeout: 1500 });
+  } else {
+    setTimeout(cb, 200);
+  }
+}
+
+/**
+ * Runs `cb` once the page has loaded, has actually painted, and the main
+ * thread is idle. Waiting for the first paint matters: on a fast connection
+ * the page can hydrate before anything is on screen, and creating a WebGL
+ * context that early holds up the first frame.
+ */
+function afterFirstPaint(cb: () => void) {
+  let done = false;
+  const go = () => {
+    if (done) return;
+    done = true;
+    onIdle(cb);
   };
-  if (document.readyState === "complete") run();
-  else window.addEventListener("load", run, { once: true });
+  const waitForPaint = () => {
+    if (performance.getEntriesByName("first-contentful-paint").length) return go();
+    try {
+      const observer = new PerformanceObserver((list) => {
+        if (list.getEntriesByName("first-contentful-paint").length) {
+          observer.disconnect();
+          go();
+        }
+      });
+      observer.observe({ type: "paint", buffered: true });
+    } catch {
+      go();
+    }
+    // Background tabs may never paint; don't wait forever.
+    setTimeout(go, 3000);
+  };
+  if (document.readyState === "complete") waitForPaint();
+  else window.addEventListener("load", waitForPaint, { once: true });
 }
 
 /**
@@ -31,10 +63,21 @@ export function Stage() {
 
   useEffect(() => {
     let cancelled = false;
-    whenIdle(() => {
+    afterFirstPaint(() => {
+      // Start downloading the 3D chunk while the GPU check runs, unless this
+      // visitor will certainly get the static view.
+      const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } })
+        .connection?.saveData;
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const forcedStatic = new URLSearchParams(window.location.search).get("tier") === "0";
+      if (!saveData && !reduced && !forcedStatic) void loadScene();
+
       detectTier().then((result) => {
         if (cancelled) return;
         document.documentElement.dataset.tier = String(result.tier);
+        window.dispatchEvent(
+          new CustomEvent<CityTierDetail>(CITY_TIER_EVENT, { detail: { tier: result.tier } }),
+        );
         setTier(result);
       });
     });
@@ -45,10 +88,14 @@ export function Stage() {
 
   return (
     <div aria-hidden="true" className="stage">
-      <div className="stage-backdrop" />
+      <div className="stage-backdrop">
+        <BackdropGrid />
+      </div>
       {tier && tier.tier !== 0 && (
         <div className="stage-canvas" data-ready={ready}>
-          <Scene tier={tier.tier} isMobile={tier.isMobile} onReady={() => setReady(true)} />
+          <Suspense fallback={null}>
+            <Scene tier={tier.tier} isMobile={tier.isMobile} onReady={() => setReady(true)} />
+          </Suspense>
         </div>
       )}
     </div>

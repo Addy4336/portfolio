@@ -2,42 +2,52 @@
 
 import { Canvas, useFrame } from "@react-three/fiber";
 import { PerformanceMonitor } from "@react-three/drei";
-import { useRef, useState } from "react";
-import type { Group } from "three";
+import { lazy, Suspense, useCallback, useMemo, useRef, useState } from "react";
 import { QUALITY, type Tier } from "@/lib/tier";
-import { scrollState } from "@/lib/scroll-state";
+import { Bench } from "./Bench";
+import { boot, BOOT_SECONDS, CITY_READY_EVENT, type CityReadyDetail } from "./boot";
+import { CameraRig } from "./CameraRig";
+import { Agents } from "./city/Agents";
+import { Buildings } from "./city/Buildings";
+import { Ground } from "./city/Ground";
+import { HQ, hqBuildings } from "./city/HQ";
+import { generateBuildings } from "./city/layout";
 import { palette } from "./palette";
+import { Precompile } from "./Precompile";
+
+// Post-processing is only downloaded on tiers that use it.
+const Effects = lazy(() => import("./Effects"));
 
 type SceneProps = { tier: Exclude<Tier, 0>; isMobile: boolean; onReady: () => void };
 
-/** Calls onReady after the first rendered frame, so the canvas fades in on a real image. */
-function FirstFrame({ onReady }: { onReady: () => void }) {
-  const done = useRef(false);
-  useFrame(() => {
-    if (done.current) return;
-    done.current = true;
-    requestAnimationFrame(onReady);
+/** Starts the boot clock on the first frame and tells the page the city is up. */
+function BootClock({ agents, onReady }: { agents: number; onReady: () => void }) {
+  const started = useRef(false);
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    if (!started.current) {
+      started.current = true;
+      boot.startedAt = t + 0.25; // let the canvas fade in before the pulse starts
+      requestAnimationFrame(() => {
+        onReady();
+        window.dispatchEvent(
+          new CustomEvent<CityReadyDetail>(CITY_READY_EVENT, { detail: { agents } }),
+        );
+      });
+    }
+    boot.value = Math.min(1, Math.max(0, (t - boot.startedAt) / BOOT_SECONDS));
   });
   return null;
 }
 
-// Placeholder world for the setup step; Section 1 replaces it with the city.
-function Placeholder() {
-  const group = useRef<Group>(null);
-  useFrame((_, delta) => {
-    if (!group.current) return;
-    group.current.rotation.y += delta * 0.05;
-    group.current.position.y = -scrollState.progress * 2;
-  });
+function City({ agents }: { agents: number }) {
+  const buildings = useMemo(() => [...generateBuildings(["hq"]), ...hqBuildings], []);
   return (
-    <group ref={group}>
-      <gridHelper args={[40, 40, palette.signal, palette.building]} />
-      {[-4, -1.5, 1, 3.5].map((x, i) => (
-        <mesh key={x} position={[x, 0.5 + i * 0.4, -i]}>
-          <boxGeometry args={[1.4, 1 + i * 0.8, 1.4]} />
-          <meshStandardMaterial color={palette.building} />
-        </mesh>
-      ))}
+    <group>
+      <Ground />
+      <Buildings buildings={buildings} />
+      <HQ />
+      <Agents count={agents} />
     </group>
   );
 }
@@ -46,23 +56,43 @@ export default function Scene({ tier, isMobile, onReady }: SceneProps) {
   const quality = QUALITY[tier];
   // The tier is fixed for the session; PerformanceMonitor nudges DPR within its range.
   const [dpr, setDpr] = useState(quality.dpr[1]);
+  // Nothing renders until every shader has compiled in the background.
+  const [compiled, setCompiled] = useState(false);
+  const onCompiled = useCallback(() => setCompiled(true), []);
+  const agents = isMobile ? Math.round(quality.agents * 0.6) : quality.agents;
 
   return (
     <Canvas
+      flat
       dpr={dpr}
+      frameloop={compiled ? "always" : "never"}
       gl={{ antialias: quality.antialias, powerPreference: "high-performance" }}
-      camera={{ position: [0, 6, isMobile ? 16 : 12], fov: isMobile ? 55 : 45 }}
+      camera={{ position: [14, 11, 15], fov: 30, near: 0.1, far: 120 }}
+      onCreated={({ gl }) => {
+        // Checking each shader for errors forces a synchronous wait on the
+        // GPU; keep it for development only.
+        gl.debug.checkShaderErrors = process.env.NODE_ENV !== "production";
+      }}
     >
       <color attach="background" args={[palette.void]} />
-      <fog attach="fog" args={[palette.void, 10, 34]} />
+      <fogExp2 attach="fog" args={[palette.void, 0.022]} />
       <PerformanceMonitor
         onDecline={() => setDpr((d) => Math.max(quality.dpr[0], d - 0.25))}
         onIncline={() => setDpr((d) => Math.min(quality.dpr[1], d + 0.25))}
       />
-      <hemisphereLight args={[palette.paper, palette.ground, 0.6]} />
-      <directionalLight position={[6, 10, 4]} intensity={1.2} color={palette.paper} />
-      <Placeholder />
-      <FirstFrame onReady={onReady} />
+      <hemisphereLight args={["#8d97c9", palette.ground, 0.55]} />
+      <directionalLight position={[-6, 12, 5]} intensity={1.1} color="#c3cbff" />
+      <pointLight position={[0, 1.2, 0]} intensity={6} distance={9} color={palette.violet} />
+      <City agents={agents} />
+      <CameraRig isMobile={isMobile} />
+      <Precompile onDone={onCompiled} />
+      <BootClock agents={agents} onReady={onReady} />
+      <Bench />
+      {quality.bloom && (
+        <Suspense fallback={null}>
+          <Effects />
+        </Suspense>
+      )}
     </Canvas>
   );
 }
