@@ -19,6 +19,9 @@ const mono = Geist_Mono({
   subsets: ["latin"],
   preload: false,
   display: "optional",
+  // Until it's cached, labels use the system monospace (not a sans fallback).
+  adjustFontFallback: false,
+  fallback: ["ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"],
 });
 
 const description = `${site.name} is an ${site.role.toLowerCase()} focused on ${site.focus
