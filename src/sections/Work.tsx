@@ -100,7 +100,7 @@ function ProjectPanel({ project, index, district }: { project: Project; index: n
 function DistrictSection({ id, children }: { id: DistrictId; children: React.ReactNode }) {
   const right = TEXT_SIDE[id] === "right";
   return (
-    <section data-cam={`district-${id}`} data-cam-hold="0.7" className="relative min-h-[160svh]">
+    <section id={`district-${id}`} data-cam={`district-${id}`} data-cam-hold="0.7" className="relative min-h-[160svh]">
       <div className="sticky top-0 flex min-h-svh items-end px-4 pb-8 pt-24 sm:px-8 md:items-center md:pb-0">
         <div className="mx-auto w-full max-w-7xl">
           <div className={`md:w-[min(32rem,44vw)] ${right ? "md:ml-auto" : ""}`}>{children}</div>

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Unbounded } from "next/font/google";
+import { Nav } from "@/components/Nav";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import { assignDistricts } from "@/lib/districts";
 import { getProjects } from "@/lib/projects";
@@ -35,7 +36,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         <Stage projects={assignDistricts(getProjects())} />
         <SmoothScroll />
-        <div className="relative z-10">{children}</div>
+        <div className="relative z-10">
+          <Nav />
+          {children}
+        </div>
       </body>
     </html>
   );

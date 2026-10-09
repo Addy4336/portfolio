@@ -59,6 +59,11 @@ export const CAMERA_KEYS = {
   "district-estate": districtShot(-4, -4, 0.1, "right"),
   "district-lab": districtShot(4, 4, 0.5, "left"),
   "district-workshop": districtShot(-4, 4, 0, "right"),
+  // Case-study pages: the same districts, always framed right of the text.
+  "work-studio": districtShot(4, -4, 0.1, "left"),
+  "work-estate": districtShot(-4, -4, 0.1, "left"),
+  "work-lab": districtShot(4, 4, 0.5, "left"),
+  "work-workshop": districtShot(-4, 4, 0, "left"),
 } satisfies Record<string, CameraShot>;
 
 export type CameraKeyName = keyof typeof CAMERA_KEYS;

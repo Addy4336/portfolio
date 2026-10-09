@@ -48,8 +48,14 @@ export function CameraRig({ isMobile }: { isMobile: boolean }) {
     refresh();
     const ro = new ResizeObserver(refresh);
     ro.observe(document.body);
+    // The canvas outlives page navigations, so also re-read the sections
+    // periodically: a new page can have the same height as the old one.
+    const timer = window.setInterval(refresh, 800);
     listenToPointer();
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      window.clearInterval(timer);
+    };
   }, []);
 
   useFrame(({ clock }, delta) => {

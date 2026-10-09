@@ -1,5 +1,4 @@
 import { site } from "@content/site";
-import { Nav } from "@/components/Nav";
 import { assignDistricts } from "@/lib/districts";
 import { getProjects } from "@/lib/projects";
 import type { Project } from "@/lib/project-schema";
@@ -24,16 +23,13 @@ function readoutsFor(projects: Project[]): Readout[] {
 export default function Home() {
   const projects = getProjects();
   return (
-    <>
-      <Nav />
-      <main>
-        <Hero projects={projects} />
-        <About story={site.story} readouts={readoutsFor(projects)} />
-        <Pipeline stages={site.pipeline} toolbox={site.toolbox} />
-        <Work projects={projects} city={assignDistricts(projects)} />
-        {/* Off the clock + Contact land in section 6. */}
-        <div className="h-[40svh]" />
-      </main>
-    </>
+    <main>
+      <Hero projects={projects} />
+      <About story={site.story} readouts={readoutsFor(projects)} />
+      <Pipeline stages={site.pipeline} toolbox={site.toolbox} />
+      <Work projects={projects} city={assignDistricts(projects)} />
+      {/* Off the clock + Contact land in section 6. */}
+      <div className="h-[40svh]" />
+    </main>
   );
 }

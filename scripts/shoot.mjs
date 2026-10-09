@@ -37,6 +37,10 @@ const ALL = [
   { name: "workshop-desktop", path: "/?tier=2", device: desktop, scroll: ["cam:district-workshop", 0.3], wait: 6000 },
   { name: "studio-phone", path: "/?tier=1", device: phone, scroll: ["cam:district-studio", 0.3], wait: 6000 },
   { name: "static-desktop", path: "/?tier=0", device: desktop, scroll: null, wait: 2500 },
+  { name: "work-iq-desktop", path: "/work/interviewiq/?tier=2", device: desktop, scroll: null, wait: 6000 },
+  { name: "work-iq-body-desktop", path: "/work/interviewiq/?tier=2", device: desktop, scroll: 1100, wait: 6000 },
+  { name: "work-research-desktop", path: "/work/research/?tier=2", device: desktop, scroll: null, wait: 6000 },
+  { name: "work-iq-phone", path: "/work/interviewiq/?tier=1", device: phone, scroll: null, wait: 6000 },
   // Performance: renders 120 frames back to back via the ?bench hook and prints the result.
   { name: "bench-t1", path: "/?tier=1&bench", device: desktop, scroll: null, wait: 6000, bench: true },
   { name: "bench-t2", path: "/?tier=2&bench", device: desktop, scroll: null, wait: 6000, bench: true },
@@ -90,7 +94,10 @@ async function main() {
       await send("Emulation.setTouchEmulationEnabled", { enabled: d.mobile });
       await send("Page.navigate", { url: BASE + shot.path });
       await sleep(shot.wait);
-      if (shot.scroll) {
+      if (typeof shot.scroll === "number") {
+        await send("Runtime.evaluate", { expression: `window.scrollTo(0, ${shot.scroll}); window.dispatchEvent(new Event('scroll'));` });
+        await sleep(2500);
+      } else if (shot.scroll) {
         const [id, frac] = shot.scroll;
         // "cam:<key>" targets a [data-cam] section; anything else is an element id.
         const selector = id.startsWith("cam:") ? `[data-cam="${id.slice(4)}"]` : `#${id}`;

@@ -174,10 +174,29 @@ body {
   }
 }
 
+/* ---- Case-study pages: one fixed shade over the city, so the text side is
+   always dark and the district stays visible, with no edges anywhere. ---- */
+.work-page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgb(7 8 12 / 0.9) 0%, rgb(7 8 12 / 0.65) 40%, transparent 70%);
+}
+@media (max-width: 767px) {
+  .work-page::before {
+    background: linear-gradient(to bottom, transparent 0%, rgb(7 8 12 / 0.7) 32%, rgb(7 8 12 / 0.9) 60%);
+  }
+}
+
 /* ---- Case-study prose (rendered MDX) ---- */
 .prose-city {
   line-height: 1.75;
   color: var(--paper-dim);
+}
+.prose-city > :first-child {
+  margin-top: 0;
 }
 .prose-city h2 {
   margin: 3rem 0 1rem;
