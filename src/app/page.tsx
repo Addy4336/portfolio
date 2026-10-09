@@ -1,8 +1,23 @@
 import Link from "next/link";
+import { site } from "@content/site";
 import { Nav } from "@/components/Nav";
 import { getProjects } from "@/lib/projects";
-import { statusLabel } from "@/lib/project-schema";
+import { statusLabel, type Project } from "@/lib/project-schema";
+import { About, type Readout } from "@/sections/About";
 import { Hero } from "@/sections/Hero";
+
+/** HQ readouts for the About section, derived from the project files. */
+function readoutsFor(projects: Project[]): Readout[] {
+  const titles = (status: Project["status"]) =>
+    projects.filter((p) => p.status === status).map((p) => p.title).join(", ");
+  const rows: Readout[] = [
+    { label: "Focus", value: site.focus.join(" · ") },
+    { label: "Live", value: titles("live") },
+    { label: "Building", value: titles("building") },
+    { label: "Next", value: titles("research") },
+  ];
+  return rows.filter((r) => r.value);
+}
 
 export default function Home() {
   const projects = getProjects();
@@ -11,17 +26,9 @@ export default function Home() {
       <Nav />
       <main>
         <Hero projects={projects} />
+        <About story={site.story} readouts={readoutsFor(projects)} />
 
-        {/* Placeholder sections: built out in sections 2–6. */}
-        <section id="about" data-cam="about" className="min-h-[150svh] px-4 py-32 sm:px-8">
-          <div className="mx-auto max-w-7xl">
-            <div className="max-w-md md:ml-auto">
-              <p className="font-mono text-xs uppercase tracking-[0.18em] text-signal">HQ · about</p>
-              <h2 className="mt-4 font-display text-4xl font-semibold">Inside HQ</h2>
-              <p className="mt-4 text-paper-dim">The story section lands here next.</p>
-            </div>
-          </div>
-        </section>
+        {/* Placeholder sections: built out in sections 3–6. */}
 
         <section id="work" className="px-4 py-32 sm:px-8">
           <div className="mx-auto max-w-7xl">

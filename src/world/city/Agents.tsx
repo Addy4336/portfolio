@@ -47,7 +47,7 @@ export function Agents({ count }: { count: number }) {
 
   const dummy = useMemo(() => new Object3D(), []);
 
-  useFrame(({ clock }, delta) => {
+  useFrame(({ clock, camera }, delta) => {
     const b = bodies.current;
     const l = lights.current;
     if (!b || !l) return;
@@ -73,7 +73,11 @@ export function Agents({ count }: { count: number }) {
       const x = fx + (tx - fx) * a.t - dz * LANE;
       const z = fz + (tz - fz) * a.t + dx * LANE;
       const bob = Math.abs(Math.sin(t * 9 * a.speed + a.phase)) * 0.025;
-      const s = Math.min(1, Math.max(0, (boot.value - 0.5 - a.spawn * 0.3) / 0.2));
+      // Spawn in during the boot, and shrink away when very close to the
+      // camera (in close-ups a passing agent would otherwise fill the frame).
+      const spawn = Math.min(1, Math.max(0, (boot.value - 0.5 - a.spawn * 0.3) / 0.2));
+      const near = Math.hypot(x - camera.position.x, bob - camera.position.y, z - camera.position.z);
+      const s = spawn * Math.min(1, Math.max(0, (near - 0.9) / 0.9));
 
       dummy.position.set(x, bob, z);
       dummy.rotation.set(0, Math.atan2(dx, dz), 0);

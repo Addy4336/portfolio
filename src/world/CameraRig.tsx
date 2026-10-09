@@ -3,22 +3,28 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import { PerspectiveCamera, Vector3 } from "three";
+import { listenToPointer, pointerState } from "@/lib/pointer-state";
 import { CAMERA_KEYS, type CameraKey, type CameraShot } from "./cameraKeys";
 
-type Section = { shot: CameraShot; top: number; height: number };
+/** `hold`: fraction of the section during which its shot stays put before gliding on. */
+type Section = { shot: CameraShot; top: number; height: number; hold: number };
 
 const smoothstep = (a: number, b: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
   return t * t * (3 - 2 * t);
 };
 
-/** Reads every `[data-cam]` section's position on the page. Re-run on resize / content changes. */
+/**
+ * Reads every `[data-cam]` section's position on the page (and its optional
+ * `data-cam-hold`). Re-run on resize / content changes.
+ */
 function measureSections(): Section[] {
   return [...document.querySelectorAll<HTMLElement>("[data-cam]")]
     .map((el) => {
       const shot = CAMERA_KEYS[el.dataset.cam as keyof typeof CAMERA_KEYS];
       const rect = el.getBoundingClientRect();
-      return shot ? { shot, top: rect.top + window.scrollY, height: rect.height } : null;
+      const hold = Number(el.dataset.camHold ?? 0.45);
+      return shot ? { shot, top: rect.top + window.scrollY, height: rect.height, hold } : null;
     })
     .filter((s): s is Section => s !== null)
     .sort((a, b) => a.top - b.top);
@@ -28,7 +34,7 @@ export function CameraRig({ isMobile }: { isMobile: boolean }) {
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   const size = useThree((s) => s.size);
   const sections = useRef<Section[]>([]);
-  const pointer = useRef({ x: 0, y: 0, sx: 0, sy: 0 });
+  const pointer = useRef({ sx: 0, sy: 0 });
   const current = useRef<{ pos: Vector3; target: Vector3; fov: number; fx: number; fy: number } | null>(
     null,
   );
@@ -42,15 +48,8 @@ export function CameraRig({ isMobile }: { isMobile: boolean }) {
     refresh();
     const ro = new ResizeObserver(refresh);
     ro.observe(document.body);
-    const onMove = (e: PointerEvent) => {
-      pointer.current.x = (e.clientX / window.innerWidth) * 2 - 1;
-      pointer.current.y = (e.clientY / window.innerHeight) * 2 - 1;
-    };
-    window.addEventListener("pointermove", onMove, { passive: true });
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("pointermove", onMove);
-    };
+    listenToPointer();
+    return () => ro.disconnect();
   }, []);
 
   useFrame(({ clock }, delta) => {
@@ -72,7 +71,7 @@ export function CameraRig({ isMobile }: { isMobile: boolean }) {
       if (next) {
         to = pick(next.shot);
         // hold the shot for the first part of the section, then glide to the next
-        blend = smoothstep(0.45, 1, (mid - s.top) / s.height);
+        blend = smoothstep(s.hold, 1, (mid - s.top) / s.height);
       } else {
         to = from;
       }
@@ -88,8 +87,8 @@ export function CameraRig({ isMobile }: { isMobile: boolean }) {
     const t = clock.elapsedTime;
     const p = pointer.current;
     const k = 1 - Math.exp(-delta * 3);
-    p.sx += (p.x - p.sx) * k;
-    p.sy += (p.y - p.sy) * k;
+    p.sx += (pointerState.x - p.sx) * k;
+    p.sy += (pointerState.y - p.sy) * k;
     const angle = Math.sin(t * 0.07) * 0.05 + (portrait ? 0 : p.sx * 0.06);
     const dx = tmp.pos.x - tmp.target.x;
     const dz = tmp.pos.z - tmp.target.z;

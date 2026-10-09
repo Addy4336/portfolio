@@ -9,6 +9,7 @@ import { boot, BOOT_SECONDS, CITY_READY_EVENT, type CityReadyDetail } from "./bo
 import { CameraRig } from "./CameraRig";
 import { Agents } from "./city/Agents";
 import { Buildings } from "./city/Buildings";
+import { Character } from "./city/Character";
 import { Ground } from "./city/Ground";
 import { HQ, hqBuildings } from "./city/HQ";
 import { generateBuildings } from "./city/layout";
@@ -47,6 +48,7 @@ function City({ agents }: { agents: number }) {
       <Ground />
       <Buildings buildings={buildings} />
       <HQ />
+      <Character />
       <Agents count={agents} />
     </group>
   );

@@ -130,6 +130,50 @@ body {
   }
 }
 
+/* ---- Live transcript (About) ---- */
+/* Without JS or with reduced motion every word is simply final (paper). */
+.transcript [data-w] {
+  color: var(--paper);
+  transition: color 220ms ease;
+}
+.transcript[data-armed] [data-w] {
+  color: rgb(237 234 226 / 0.13);
+}
+.transcript[data-armed] [data-w][data-s="i"],
+.transcript[data-armed] [data-w][data-s="c"] {
+  color: var(--paper-dim);
+}
+.transcript[data-armed] [data-w][data-s="f"] {
+  color: var(--paper);
+}
+/* Phones: while the effect runs, the transcript is a short caption window
+   that follows the newest words (LiveTranscript scrolls it). */
+@media (max-width: 639px) {
+  .transcript[data-armed] .transcript-body {
+    max-height: calc(1.625em * 6);
+    overflow: hidden;
+    scroll-behavior: smooth;
+  }
+  .transcript[data-armed] .transcript-body[data-scrolled="true"] {
+    mask-image: linear-gradient(to bottom, transparent, black 38%);
+  }
+}
+.transcript [data-w][data-s="c"]::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 3px;
+  vertical-align: -0.15em;
+  background: var(--signal);
+  animation: caret 1s steps(1) infinite;
+}
+@keyframes caret {
+  50% {
+    opacity: 0;
+  }
+}
+
 /* ---- Case-study prose (rendered MDX) ---- */
 .prose-city {
   line-height: 1.75;

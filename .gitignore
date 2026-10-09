@@ -45,3 +45,6 @@ next-env.d.ts
 
 # lighthouse reports
 /.lighthouse/
+
+# visual QA screenshots (scripts/shoot.mjs)
+/.shots/

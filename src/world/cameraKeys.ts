@@ -20,9 +20,10 @@ export const CAMERA_KEYS = {
     desktop: { position: [17, 13, 18], target: [0, 1, 0], fov: 30, frame: [-0.24, 0.02] },
     mobile: { position: [22, 19, 24], target: [0, 1.2, 0], fov: 34, frame: [0, 0.27] },
   },
+  // Low angle on Adi standing on the HQ plaza, the tower rising behind.
   about: {
-    desktop: { position: [3.8, 3.4, 4.8], target: [0, 2.6, 0], fov: 38, frame: [0.2, 0] },
-    mobile: { position: [4.6, 4.2, 6.2], target: [0, 2.6, 0], fov: 44, frame: [0, 0.2] },
+    desktop: { position: [2.35, 0.95, 3.35], target: [0.3, 0.75, 1.0], fov: 40, frame: [0.21, 0] },
+    mobile: { position: [2.75, 1.15, 4.4], target: [0.32, 0.5, 1.15], fov: 44, frame: [0, 0.31] },
   },
 } satisfies Record<string, CameraShot>;
 
