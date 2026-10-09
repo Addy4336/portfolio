@@ -1,26 +1,139 @@
 @import "tailwindcss";
+@import "lenis/dist/lenis.css";
 
+/* Design tokens. The 3D palette mirrors these in src/world/palette.ts. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --void: #07080c;
+  --ground: #111522;
+  --building: #232a3d;
+  --building-light: #2e3650;
+  --signal: #c8f53a;
+  --violet: #7a5cff;
+  --paper: #edeae2;
+  --paper-dim: #a8a69f;
+  --line: rgb(237 234 226 / 0.12);
+  color-scheme: dark;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-void: var(--void);
+  --color-ground: var(--ground);
+  --color-building: var(--building);
+  --color-signal: var(--signal);
+  --color-violet: var(--violet);
+  --color-paper: var(--paper);
+  --color-paper-dim: var(--paper-dim);
+  --color-line: var(--line);
+  --font-display: var(--font-unbounded);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--void);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--void);
+  color: var(--paper);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--signal);
+  color: var(--void);
+}
+
+:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 3px;
+}
+
+/* ---- Stage: fixed layer behind the page ---- */
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* What tier-0 visitors see, and what everyone sees until WebGL is ready. */
+.stage-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 45% at 50% 62%, rgb(122 92 255 / 0.16), transparent 70%),
+    radial-gradient(ellipse 40% 25% at 50% 70%, rgb(200 245 58 / 0.08), transparent 70%),
+    var(--void);
+}
+
+.stage-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 45% -20% -10%;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 48px 48px;
+  transform: perspective(600px) rotateX(62deg);
+  transform-origin: top center;
+  mask-image: linear-gradient(to bottom, transparent, black 30%, transparent 90%);
+}
+
+.stage-canvas {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 900ms ease;
+}
+
+.stage-canvas[data-ready="true"] {
+  opacity: 1;
+}
+
+/* ---- Case-study prose (rendered MDX) ---- */
+.prose-city {
+  line-height: 1.75;
+  color: var(--paper-dim);
+}
+.prose-city h2 {
+  margin: 3rem 0 1rem;
+  font-family: var(--font-unbounded), sans-serif;
+  font-size: 1.35rem;
+  color: var(--paper);
+}
+.prose-city p,
+.prose-city ul {
+  margin: 0 0 1.25rem;
+}
+.prose-city ul {
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+.prose-city li {
+  margin-bottom: 0.6rem;
+}
+.prose-city li::marker {
+  color: var(--signal);
+}
+.prose-city strong {
+  color: var(--paper);
+  font-weight: 600;
+}
+.prose-city code {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.9em;
+  color: var(--signal);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

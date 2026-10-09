@@ -1,0 +1,51 @@
+---
+title: InterviewIQ
+tagline: A voice AI interviewer you can actually talk to
+summary: >-
+  Pick a role and a difficulty, then have a real spoken interview. The interviewer probes
+  your answers, tests your claims and adapts, then hands you a scored report with your
+  full transcript. Deployed, in use, and built entirely on free tiers.
+status: live
+progress: 1
+category: flagship
+district: studio
+year: 2026
+role: Solo build. Product, voice pipeline, web app and infrastructure
+stack: [Next.js 16, React 19, Pipecat, LiveKit, Deepgram Flux, Groq, Supabase]
+order: 1
+---
+
+## The problem
+
+Mock interviews with a chatbot feel like filling in a form. Real interviews are spoken,
+they interrupt you, they follow up on the thing you said thirty seconds ago, and they
+end. I wanted a practice partner that behaves like an interviewer, not a text box.
+
+## How it works
+
+The browser streams audio over WebRTC through LiveKit. A Pipecat pipeline per interview
+runs speech-to-text (Deepgram Flux), decides when you've finished talking, asks an LLM
+(Groq `gpt-oss-120b`) for the next move, and speaks it back with Deepgram Aura-2. Every
+completed turn is saved, and when you end the session the LLM writes a scored report.
+
+## Decisions that mattered
+
+- **A planned interview, not a chatbot.** Left alone, an LLM repeats questions and never
+  concludes. The plan lives in code: intro, a deep dive on your own project, a ramp of
+  questions from a nine-area bank, your questions, a close. Each turn the model gets a
+  short directive and replies with a control tag that is stripped before speech.
+- **Turn-taking that waits for you.** Flux detects the end of your turn, and a short,
+  cancellable hold means a thinking pause isn't mistaken for a finished answer.
+- **A one-second start.** Python imports alone take about 14 seconds, so a dispatcher keeps
+  a pre-imported standby bot and hands it the next session.
+- **Built for a free tier.** Groq allows about 8k tokens a minute per model, so history is
+  trimmed and the bot fails over to a second model on a rate limit.
+- **Safe by default.** Row-level security on every table, service-role-only writes for
+  transcripts and reports, shared-secret auth on the voice server, LiveKit tokens minted
+  only for the caller's own room, and per-account rate limits.
+
+## Honest limitations
+
+Replies take roughly three seconds: end-of-turn detection, a deliberate patience hold,
+then the LLM and the first audio. One bot process per interview is fine for a handful of
+concurrent sessions, not for scale.

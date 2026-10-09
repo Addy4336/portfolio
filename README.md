@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Agent City — Adi's portfolio
 
-## Getting Started
+A living night-time city run by tiny autonomous agents. Each district is a project, the
+transit loop is the voice/agent pipeline, and the city grows every time a project is added.
 
-First, run the development server:
+Next.js 16 (static export) · React 19 · three.js + React Three Fiber · GSAP + Lenis ·
+Tailwind v4 · MDX. Everything is free and open source.
+
+## Run it
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3000
+npm run build      # static site in out/
+npm run preview    # serve out/ on http://localhost:4173
+npm test           # validates every project file
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Add `?tier=0` … `?tier=3` to any URL to force a device tier (0 = no WebGL).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Add a project
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Create `content/projects/<slug>.mdx` (lowercase, dashes: `voice-notes.mdx`).
+2. Fill in the frontmatter, then write the case study below it in Markdown:
 
-## Learn More
+```mdx
+---
+title: Voice Notes
+tagline: One line for the sign on its building
+summary: Two or three sentences for the panel on the home page.
+status: live            # live | building | research | idea
+progress: 1             # 0–1; low values show the building under scaffolding
+category: side          # flagship gets a district, side gets a kiosk
+district: auto          # studio | estate | lab | workshop | auto
+year: 2026
+role: Solo build
+stack: [Python, FastAPI]
+links:
+  live: https://example.com
+  github: https://github.com/you/repo
+order: 10               # lower comes first
+---
 
-To learn more about Next.js, take a look at the following resources:
+## The problem
+...
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. Optional: put images in `public/projects/<slug>/` and set `cover: /projects/<slug>/cover.webp`.
+4. Run `npm test`. A missing or wrong field fails with the file and field name.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+That's it: the home page, the city and `/work/<slug>/` pick it up automatically.
 
-## Deploy on Vercel
+## Layout
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+content/projects/   one .mdx per project
+src/app/            routes: home, work/[slug]
+src/world/          the 3D city (loaded lazily, after first paint)
+src/components/     shared UI (smooth scroll, …)
+src/lib/            content loader + schema, device tiers, scroll state, motion loader
+scripts/            build helpers (benchmark copy, bundle report)
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Performance rules
+
+- All text is real HTML; the 3D layer is progressive and never blocks content.
+- three.js and friends load only after the page is idle, and only on capable devices.
+- GSAP and Lenis load just after first paint; the page reads fine without them.
+- `node scripts/bundle-report.mjs` after a build prints initial vs lazy JS.
+
+## Credits
+
+Third-party assets and their licences are listed in [CREDITS.md](./CREDITS.md).
