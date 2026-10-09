@@ -41,6 +41,10 @@ const ALL = [
   { name: "work-iq-body-desktop", path: "/work/interviewiq/?tier=2", device: desktop, scroll: 1100, wait: 6000 },
   { name: "work-research-desktop", path: "/work/research/?tier=2", device: desktop, scroll: null, wait: 6000 },
   { name: "work-iq-phone", path: "/work/interviewiq/?tier=1", device: phone, scroll: null, wait: 6000 },
+  { name: "offclock-desktop", path: "/?tier=2", device: desktop, scroll: ["off-the-clock", 0.3], wait: 6000 },
+  { name: "contact-desktop", path: "/?tier=2", device: desktop, scroll: ["contact", 0.05], wait: 6000 },
+  { name: "flare-desktop", path: "/?tier=2", device: desktop, scroll: ["contact", 0.05], wait: 6000, eval: "window.dispatchEvent(new Event('city:flare'))", after: 1300 },
+  { name: "contact-phone", path: "/?tier=1", device: phone, scroll: ["contact", 0.05], wait: 6000 },
   // Performance: renders 120 frames back to back via the ?bench hook and prints the result.
   { name: "bench-t1", path: "/?tier=1&bench", device: desktop, scroll: null, wait: 6000, bench: true },
   { name: "bench-t2", path: "/?tier=2&bench", device: desktop, scroll: null, wait: 6000, bench: true },
@@ -113,6 +117,10 @@ async function main() {
         });
         console.log(`${shot.name}: ${result.value}`);
         continue;
+      }
+      if (shot.eval) {
+        await send("Runtime.evaluate", { expression: shot.eval });
+        await sleep(shot.after ?? 1000);
       }
       const { data } = await send("Page.captureScreenshot", { format: "png" });
       const file = join(OUT, `${shot.name}.png`);

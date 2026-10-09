@@ -59,6 +59,16 @@ export const CAMERA_KEYS = {
   "district-estate": districtShot(-4, -4, 0.1, "right"),
   "district-lab": districtShot(4, 4, 0.5, "left"),
   "district-workshop": districtShot(-4, 4, 0, "right"),
+  // The little park island west of the city (OffClock.tsx), text on the left.
+  offclock: {
+    desktop: { position: [-7.6, 2.9, 1.6], target: [-11, 0.75, -3], fov: 40, frame: [-0.2, 0.02] },
+    mobile: { position: [-6.8, 4.2, 3.2], target: [-11, 0.7, -3], fov: 46, frame: [0, 0.27] },
+  },
+  // Pulled right back: the whole city at night, room above HQ for the flare.
+  contact: {
+    desktop: { position: [16, 15, 21], target: [-1.5, 3.2, -0.5], fov: 36, frame: [-0.2, 0.02] },
+    mobile: { position: [20, 22, 27], target: [-1.5, 4.5, -0.5], fov: 40, frame: [0, 0.29] },
+  },
   // Case-study pages: the same districts, always framed right of the text.
   "work-studio": districtShot(4, -4, 0.1, "left"),
   "work-estate": districtShot(-4, -4, 0.1, "left"),

@@ -93,7 +93,7 @@ function useGroundMaterial() {
 }
 
 /** Soft violet glow under the island, so it reads as floating in the void. */
-function useUnderglowMaterial() {
+export function useUnderglowMaterial() {
   return useMemo(
     () =>
       new ShaderMaterial({

@@ -2,6 +2,8 @@ import { site } from "@content/site";
 import { assignDistricts } from "@/lib/districts";
 import { getProjects } from "@/lib/projects";
 import type { Project } from "@/lib/project-schema";
+import { Contact } from "@/sections/Contact";
+import { OffClock } from "@/sections/OffClock";
 import { Work } from "@/sections/Work";
 import { About, type Readout } from "@/sections/About";
 import { Hero } from "@/sections/Hero";
@@ -28,8 +30,14 @@ export default function Home() {
       <About story={site.story} readouts={readoutsFor(projects)} />
       <Pipeline stages={site.pipeline} toolbox={site.toolbox} />
       <Work projects={projects} city={assignDistricts(projects)} />
-      {/* Off the clock + Contact land in section 6. */}
-      <div className="h-[40svh]" />
+      <OffClock items={site.offClock} />
+      <Contact
+        name={site.name}
+        availability={site.availability}
+        email={site.email}
+        resume={site.resume}
+        links={site.links}
+      />
     </main>
   );
 }

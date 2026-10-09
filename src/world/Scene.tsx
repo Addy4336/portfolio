@@ -11,6 +11,9 @@ import { Agents } from "./city/Agents";
 import { Buildings } from "./city/Buildings";
 import { Character } from "./city/Character";
 import { Districts } from "./city/Districts";
+import { Flare } from "./city/Flare";
+import { OffClock } from "./city/OffClock";
+import { site } from "@content/site";
 import type { CityProject } from "@/lib/districts";
 import { Ground } from "./city/Ground";
 import { HQ, hqBuildings } from "./city/HQ";
@@ -65,6 +68,8 @@ function City({ agents, projects }: { agents: number; projects: CityProject[] })
       <Stations />
       <Packet />
       <Districts projects={projects} />
+      <OffClock items={site.offClock} />
+      <Flare />
       <Agents count={agents} />
     </group>
   );

@@ -23,13 +23,27 @@ const FACING = 0.75;
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
+type CharacterProps = {
+  position?: [number, number, number];
+  facing?: number;
+  /** Seated (e.g. on a bench): legs forward, no marker. */
+  sitting?: boolean;
+  /** The HQ Adi follows the cursor, waves and "speaks"; others just idle. */
+  interactive?: boolean;
+};
+
 /**
  * Adi, as a little toy figure built from primitives: violet hoodie, a round
  * head with a screen face, a lime headphone band and a mic boom whose tip
- * lights up while the About story is "spoken". The head follows the cursor,
- * the eyes blink, and the right arm waves on the WAVE_EVENT.
+ * lights up while the About story is "spoken". The interactive one follows
+ * the cursor, blinks, and waves on the WAVE_EVENT.
  */
-export function Character() {
+export function Character({
+  position = ADI_POSITION,
+  facing = FACING,
+  sitting = false,
+  interactive = true,
+}: CharacterProps) {
   const root = useRef<Group>(null);
   const head = useRef<Group>(null);
   const rightArm = useRef<Group>(null);
@@ -68,10 +82,11 @@ export function Character() {
   );
 
   useEffect(() => {
+    if (!interactive) return;
     const onWave = () => (motion.current.wave = performance.now() / 1000);
     window.addEventListener(WAVE_EVENT, onWave);
     return () => window.removeEventListener(WAVE_EVENT, onWave);
-  }, []);
+  }, [interactive]);
 
   useFrame(({ clock }, delta) => {
     const t = clock.elapsedTime;
@@ -81,12 +96,15 @@ export function Character() {
     if (root.current) {
       const s = clamp((boot.value - 0.88) / 0.12, 0, 1);
       root.current.scale.setScalar(Math.max(0.001, s));
-      root.current.position.y = ADI_POSITION[1] + Math.sin(t * 2.1) * 0.004;
+      root.current.position.y = position[1] + Math.sin(t * 2.1) * 0.004;
     }
 
-    // Look towards the cursor (screen right is the character's left).
-    m.yaw += (clamp(-pointerState.x * 0.6, -0.6, 0.6) - m.yaw) * k;
-    m.pitch += (clamp(pointerState.y * 0.35, -0.25, 0.35) - m.pitch) * k;
+    // Look towards the cursor (screen right is the character's left), or,
+    // off duty, nod slowly along to whatever's in the headphones.
+    const yaw = interactive ? clamp(-pointerState.x * 0.6, -0.6, 0.6) : Math.sin(t * 0.4) * 0.25;
+    const pitch = interactive ? clamp(pointerState.y * 0.35, -0.25, 0.35) : 0.12 + Math.sin(t * 3.2) * 0.06;
+    m.yaw += (yaw - m.yaw) * k;
+    m.pitch += (pitch - m.pitch) * k;
     if (head.current) {
       head.current.rotation.set(m.pitch, m.yaw, Math.sin(t * 0.9) * 0.03);
     }
@@ -109,11 +127,15 @@ export function Character() {
       rightArm.current.rotation.z += (target - rightArm.current.rotation.z) * (1 - Math.exp(-delta * 10));
     }
 
-    // Mic light follows the "voice".
-    voiceState.level = Math.max(0, voiceState.level - delta * 2.2);
-    if (micTip.current) {
-      mats.mic.color.copy(micColors.dim).lerp(micColors.bright, voiceState.level);
-      micTip.current.scale.setScalar(1 + voiceState.level * 0.6);
+    // Mic light follows the "voice" (only the HQ Adi speaks).
+    if (interactive) {
+      voiceState.level = Math.max(0, voiceState.level - delta * 2.2);
+      if (micTip.current) {
+        mats.mic.color.copy(micColors.dim).lerp(micColors.bright, voiceState.level);
+        micTip.current.scale.setScalar(1 + voiceState.level * 0.6);
+      }
+    } else {
+      mats.mic.color.copy(micColors.dim);
     }
     if (marker.current) {
       const pulse = (t * 0.6) % 1;
@@ -123,18 +145,22 @@ export function Character() {
   });
 
   return (
-    <group ref={root} position={ADI_POSITION} rotation-y={FACING}>
+    <group ref={root} position={position} rotation-y={facing}>
       {/* "you are here" pulse on the plaza */}
-      <mesh ref={marker} rotation-x={-Math.PI / 2} position-y={0.004} material={mats.ring}>
-        <ringGeometry args={[0.15, 0.165, 40]} />
-      </mesh>
-
-      {/* legs */}
-      {[-0.042, 0.042].map((x) => (
-        <mesh key={x} position={[x, 0.07, 0]} material={mats.dark}>
-          <capsuleGeometry args={[0.03, 0.08, 3, 8]} />
+      {!sitting && (
+        <mesh ref={marker} rotation-x={-Math.PI / 2} position-y={0.004} material={mats.ring}>
+          <ringGeometry args={[0.15, 0.165, 40]} />
         </mesh>
-      ))}
+      )}
+
+      {/* legs, pivoting at the hip: straight down, or forward when seated */}
+      <group position-y={0.13} rotation-x={sitting ? -1.45 : 0}>
+        {[-0.042, 0.042].map((x) => (
+          <mesh key={x} position={[x, -0.06, 0]} material={mats.dark}>
+            <capsuleGeometry args={[0.03, 0.08, 3, 8]} />
+          </mesh>
+        ))}
+      </group>
 
       {/* torso */}
       <mesh position-y={0.245} material={mats.hoodie}>

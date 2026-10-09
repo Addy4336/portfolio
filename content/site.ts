@@ -76,7 +76,18 @@ export const site = {
     "pytest",
     "GitHub Actions",
   ],
+  /**
+   * Off the clock: a few things outside engineering, shown as lit signs on a
+   * little island next to the city. Leave the list empty to hide the section.
+   * `note` is one short line.
+   */
+  offClock: [] as { title: string; note: string }[],
+  /** Public contact email. Leave empty to hide the email button. */
+  email: "",
+  /** Path under /public, e.g. "/resume.pdf". Leave empty to hide. */
+  resume: "",
   links: {
     github: "https://github.com/Addy4336",
-  } as Record<string, string>,
+    linkedin: "",
+  },
 } as const;
