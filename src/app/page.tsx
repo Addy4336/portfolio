@@ -1,8 +1,9 @@
-import Link from "next/link";
 import { site } from "@content/site";
 import { Nav } from "@/components/Nav";
+import { assignDistricts } from "@/lib/districts";
 import { getProjects } from "@/lib/projects";
-import { statusLabel, type Project } from "@/lib/project-schema";
+import type { Project } from "@/lib/project-schema";
+import { Work } from "@/sections/Work";
 import { About, type Readout } from "@/sections/About";
 import { Hero } from "@/sections/Hero";
 import { Pipeline } from "@/sections/Pipeline";
@@ -29,24 +30,9 @@ export default function Home() {
         <Hero projects={projects} />
         <About story={site.story} readouts={readoutsFor(projects)} />
         <Pipeline stages={site.pipeline} toolbox={site.toolbox} />
-
-        {/* Placeholder sections: built out in sections 4–6. */}
-
-        <section id="work" className="px-4 py-32 sm:px-8">
-          <div className="mx-auto max-w-7xl">
-            <h2 className="font-display text-2xl">Work</h2>
-            <ul className="mt-6 max-w-3xl divide-y divide-line border-y border-line">
-              {projects.map((p) => (
-                <li key={p.slug}>
-                  <Link href={`/work/${p.slug}/`} className="flex items-baseline justify-between gap-4 py-4">
-                    <span className="font-display">{p.title}</span>
-                    <span className="font-mono text-xs text-paper-dim">{statusLabel[p.status]}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
+        <Work projects={projects} city={assignDistricts(projects)} />
+        {/* Off the clock + Contact land in section 6. */}
+        <div className="h-[40svh]" />
       </main>
     </>
   );

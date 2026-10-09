@@ -1,6 +1,7 @@
 "use client";
 
 import { lazy, Suspense, useEffect, useState } from "react";
+import type { CityProject } from "@/lib/districts";
 import { detectTier, type TierResult } from "@/lib/tier";
 import { BackdropGrid } from "./BackdropGrid";
 import { CITY_STANDBY_EVENT, CITY_TIER_EVENT, type CityTierDetail } from "./boot";
@@ -58,7 +59,7 @@ function afterFirstPaint(cb: () => void) {
  * page has painted and the device can handle it (on touch devices, after the
  * first interaction).
  */
-export function Stage() {
+export function Stage({ projects }: { projects: CityProject[] }) {
   const [tier, setTier] = useState<TierResult | null>(null);
   const [ready, setReady] = useState(false);
 
@@ -116,7 +117,12 @@ export function Stage() {
       {tier && tier.tier !== 0 && (
         <div className="stage-canvas" data-ready={ready}>
           <Suspense fallback={null}>
-            <Scene tier={tier.tier} isMobile={tier.isMobile} onReady={() => setReady(true)} />
+            <Scene
+              tier={tier.tier}
+              isMobile={tier.isMobile}
+              projects={projects}
+              onReady={() => setReady(true)}
+            />
           </Suspense>
         </div>
       )}

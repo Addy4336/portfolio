@@ -10,6 +10,8 @@ import { CameraRig } from "./CameraRig";
 import { Agents } from "./city/Agents";
 import { Buildings } from "./city/Buildings";
 import { Character } from "./city/Character";
+import { Districts } from "./city/Districts";
+import type { CityProject } from "@/lib/districts";
 import { Ground } from "./city/Ground";
 import { HQ, hqBuildings } from "./city/HQ";
 import { generateBuildings } from "./city/layout";
@@ -21,7 +23,12 @@ import { Precompile } from "./Precompile";
 // Post-processing is only downloaded on tiers that use it.
 const Effects = lazy(() => import("./Effects"));
 
-type SceneProps = { tier: Exclude<Tier, 0>; isMobile: boolean; onReady: () => void };
+type SceneProps = {
+  tier: Exclude<Tier, 0>;
+  isMobile: boolean;
+  projects: CityProject[];
+  onReady: () => void;
+};
 
 /** Starts the boot clock on the first frame and tells the page the city is up. */
 function BootClock({ agents, onReady }: { agents: number; onReady: () => void }) {
@@ -43,8 +50,12 @@ function BootClock({ agents, onReady }: { agents: number; onReady: () => void })
   return null;
 }
 
-function City({ agents }: { agents: number }) {
-  const buildings = useMemo(() => [...generateBuildings(["hq"]), ...hqBuildings], []);
+function City({ agents, projects }: { agents: number; projects: CityProject[] }) {
+  // Generic filler everywhere except HQ and the four project districts.
+  const buildings = useMemo(
+    () => [...generateBuildings(["hq", "studio", "estate", "lab", "workshop"]), ...hqBuildings],
+    [],
+  );
   return (
     <group>
       <Ground />
@@ -53,12 +64,13 @@ function City({ agents }: { agents: number }) {
       <Character />
       <Stations />
       <Packet />
+      <Districts projects={projects} />
       <Agents count={agents} />
     </group>
   );
 }
 
-export default function Scene({ tier, isMobile, onReady }: SceneProps) {
+export default function Scene({ tier, isMobile, projects, onReady }: SceneProps) {
   const quality = QUALITY[tier];
   // The tier is fixed for the session; PerformanceMonitor nudges DPR within its range.
   const [dpr, setDpr] = useState(quality.dpr[1]);
@@ -89,7 +101,7 @@ export default function Scene({ tier, isMobile, onReady }: SceneProps) {
       <hemisphereLight args={["#8d97c9", palette.ground, 0.55]} />
       <directionalLight position={[-6, 12, 5]} intensity={1.1} color="#c3cbff" />
       <pointLight position={[0, 1.2, 0]} intensity={6} distance={9} color={palette.violet} />
-      <City agents={agents} />
+      <City agents={agents} projects={projects} />
       <CameraRig isMobile={isMobile} />
       <Precompile onDone={onCompiled} />
       <BootClock agents={agents} onReady={onReady} />

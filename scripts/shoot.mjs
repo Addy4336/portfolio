@@ -30,7 +30,16 @@ const ALL = [
   { name: "pipeline-act-desktop", path: "/?tier=2", device: desktop, scroll: ["pipeline", 1.25], wait: 6000 },
   { name: "pipeline-speak-desktop", path: "/?tier=2", device: desktop, scroll: ["pipeline", 1.95], wait: 6000 },
   { name: "pipeline-phone", path: "/?tier=1", device: phone, scroll: ["pipeline", 1.25], wait: 6000 },
+  // Work districts are found by their data-cam attribute; scroll is a fraction into that section.
+  { name: "studio-desktop", path: "/?tier=2", device: desktop, scroll: ["cam:district-studio", 0.3], wait: 6000 },
+  { name: "estate-desktop", path: "/?tier=2", device: desktop, scroll: ["cam:district-estate", 0.3], wait: 6000 },
+  { name: "lab-desktop", path: "/?tier=2", device: desktop, scroll: ["cam:district-lab", 0.3], wait: 6000 },
+  { name: "workshop-desktop", path: "/?tier=2", device: desktop, scroll: ["cam:district-workshop", 0.3], wait: 6000 },
+  { name: "studio-phone", path: "/?tier=1", device: phone, scroll: ["cam:district-studio", 0.3], wait: 6000 },
   { name: "static-desktop", path: "/?tier=0", device: desktop, scroll: null, wait: 2500 },
+  // Performance: renders 120 frames back to back via the ?bench hook and prints the result.
+  { name: "bench-t1", path: "/?tier=1&bench", device: desktop, scroll: null, wait: 6000, bench: true },
+  { name: "bench-t2", path: "/?tier=2&bench", device: desktop, scroll: null, wait: 6000, bench: true },
 ];
 const list = shots.length ? ALL.filter((s) => shots.includes(s.name)) : ALL;
 
@@ -83,10 +92,20 @@ async function main() {
       await sleep(shot.wait);
       if (shot.scroll) {
         const [id, frac] = shot.scroll;
+        // "cam:<key>" targets a [data-cam] section; anything else is an element id.
+        const selector = id.startsWith("cam:") ? `[data-cam="${id.slice(4)}"]` : `#${id}`;
         await send("Runtime.evaluate", {
-          expression: `window.scrollTo(0, document.getElementById(${JSON.stringify(id)}).offsetTop + innerHeight * ${frac}); window.dispatchEvent(new Event('scroll'));`,
+          expression: `(() => { const el = document.querySelector(${JSON.stringify(selector)}); const top = el.getBoundingClientRect().top + scrollY; window.scrollTo(0, top + innerHeight * ${frac}); window.dispatchEvent(new Event('scroll')); })()`,
         });
         await sleep(2500);
+      }
+      if (shot.bench) {
+        const { result } = await send("Runtime.evaluate", {
+          expression: "JSON.stringify(window.__cityBench ? window.__cityBench(120) : 'no bench hook')",
+          returnByValue: true,
+        });
+        console.log(`${shot.name}: ${result.value}`);
+        continue;
       }
       const { data } = await send("Page.captureScreenshot", { format: "png" });
       const file = join(OUT, `${shot.name}.png`);

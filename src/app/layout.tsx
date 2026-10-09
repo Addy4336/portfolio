@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Unbounded } from "next/font/google";
 import { SmoothScroll } from "@/components/SmoothScroll";
+import { assignDistricts } from "@/lib/districts";
+import { getProjects } from "@/lib/projects";
 import { Stage } from "@/world/Stage";
 import "./globals.css";
 
@@ -31,7 +33,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${display.variable} ${sans.variable} ${mono.variable} antialiased`}
     >
       <body>
-        <Stage />
+        <Stage projects={assignDistricts(getProjects())} />
         <SmoothScroll />
         <div className="relative z-10">{children}</div>
       </body>
