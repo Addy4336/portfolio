@@ -7,6 +7,7 @@ import { QUALITY, type Tier } from "@/lib/tier";
 import { Bench } from "./Bench";
 import { boot, BOOT_SECONDS, CITY_READY_EVENT, type CityReadyDetail } from "./boot";
 import { CameraRig } from "./CameraRig";
+import { CityPicker } from "./CityPicker";
 import { Agents } from "./city/Agents";
 import { Buildings } from "./city/Buildings";
 import { Character } from "./city/Character";
@@ -143,6 +144,7 @@ export default function Scene({ tier, isMobile, projects, onReady }: SceneProps)
       <pointLight position={[0, 1.2, 0]} intensity={6} distance={9} color={palette.violet} />
       <City agents={agents} projects={projects} onStaged={onStaged} />
       <CameraRig isMobile={isMobile} />
+      <CityPicker projects={projects} />
       {staged && <Precompile onDone={onCompiled} />}
       <BootClock agents={agents} onReady={onReady} />
       <Bench />

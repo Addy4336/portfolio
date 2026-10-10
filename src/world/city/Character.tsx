@@ -12,6 +12,8 @@ import {
   TubeGeometry,
   Vector3,
 } from "three";
+import { adiState } from "@/lib/adi-state";
+import { chirp } from "@/lib/ambience";
 import { pointerState } from "@/lib/pointer-state";
 import { voiceState, WAVE_EVENT } from "@/lib/voice-state";
 import { boot } from "../boot";
@@ -22,6 +24,21 @@ export const ADI_POSITION: [number, number, number] = [0.35, 0.06, 1.2];
 const FACING = 0.75;
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+const smooth = (a: number, b: number, x: number) => {
+  const t = clamp((x - a) / (b - a), 0, 1);
+  return t * t * (3 - 2 * t);
+};
+
+/** A "high wave": both arms up, a couple of hops, happy eyes. Seconds. */
+const WAVE_SECONDS = 2.3;
+/** Don't greet again sooner than this after the last wave. */
+const WAVE_COOLDOWN = 6;
+/** Scroll speed (px per frame) above which the page counts as "moving". */
+const SCROLL_MOVING = 3;
+/** How long the page must be still before Adi notices you've stopped. */
+const SCROLL_SETTLE = 0.45;
+/** Idle greeting: still on the About section for this long. */
+const IDLE_WAVE = 9;
 
 type CharacterProps = {
   position?: [number, number, number];
@@ -47,10 +64,25 @@ export function Character({
   const root = useRef<Group>(null);
   const head = useRef<Group>(null);
   const rightArm = useRef<Group>(null);
+  const leftArm = useRef<Group>(null);
+  const rightFore = useRef<Group>(null);
+  const leftFore = useRef<Group>(null);
   const eyes = useRef<Group>(null);
+  const happyEyes = useRef<Group>(null);
   const micTip = useRef<Mesh>(null);
   const marker = useRef<Mesh>(null);
-  const motion = useRef({ yaw: 0, pitch: 0, wave: -10, nextBlink: 2, blink: 0 });
+  const motion = useRef({
+    yaw: 0,
+    pitch: 0,
+    lean: 0,
+    wave: -10,
+    nextBlink: 2,
+    blink: 0,
+    scrollY: -1,
+    lastMoving: -10,
+    quietSince: 0,
+    wasAbout: false,
+  });
 
   const mats = useMemo(
     () => ({
@@ -83,7 +115,13 @@ export function Character({
 
   useEffect(() => {
     if (!interactive) return;
-    const onWave = () => (motion.current.wave = performance.now() / 1000);
+    const onWave = () => {
+      const m = motion.current;
+      if (performance.now() / 1000 - m.wave < WAVE_SECONDS) return;
+      m.wave = performance.now() / 1000;
+      m.quietSince = performance.now() / 1000;
+      chirp();
+    };
     window.addEventListener(WAVE_EVENT, onWave);
     return () => window.removeEventListener(WAVE_EVENT, onWave);
   }, [interactive]);
@@ -96,13 +134,56 @@ export function Character({
     if (root.current) {
       const s = clamp((boot.value - 0.88) / 0.12, 0, 1);
       root.current.scale.setScalar(Math.max(0.001, s));
-      root.current.position.y = position[1] + Math.sin(t * 2.1) * 0.004;
+    }
+
+    // Scroll awareness (the HQ Adi only): lean along the scroll, and when the
+    // page stops moving while About is on screen, notice and wave.
+    const now = performance.now() / 1000;
+    if (interactive) {
+      const dy = m.scrollY < 0 ? 0 : window.scrollY - m.scrollY;
+      m.scrollY = window.scrollY;
+      if (Math.abs(dy) > SCROLL_MOVING) {
+        m.lastMoving = now;
+        m.quietSince = now;
+      }
+      const leanTarget = clamp(dy * 0.012, -0.22, 0.22);
+      m.lean += (leanTarget - m.lean) * (1 - Math.exp(-delta * 8));
+
+      const about = adiState.aboutVisible;
+      if (about && !m.wasAbout) {
+        // arriving: the wave comes once the camera has settled
+        m.wave = Math.min(m.wave, now - WAVE_COOLDOWN);
+      }
+      m.wasAbout = about;
+      const settled = now - m.lastMoving > SCROLL_SETTLE;
+      const cooled = now - m.wave > WAVE_COOLDOWN;
+      const greet = about && settled && m.lastMoving > m.wave && cooled;
+      const idle = about && now - m.quietSince > IDLE_WAVE && cooled;
+      if (greet || idle) {
+        m.wave = now;
+        m.quietSince = now;
+        chirp();
+      }
+    }
+
+    // 0 → 1 → 0 over the wave: eased in, held, eased out.
+    const since = now - m.wave;
+    const waveAmount =
+      since >= 0 && since < WAVE_SECONDS
+        ? smooth(0, 0.28, since) * (1 - smooth(WAVE_SECONDS - 0.4, WAVE_SECONDS, since))
+        : 0;
+    if (root.current) {
+      const hop = waveAmount > 0 ? Math.max(0, Math.sin(since * 7.5)) * 0.05 * waveAmount : 0;
+      root.current.position.y = position[1] + Math.sin(t * 2.1) * 0.004 + hop;
+      root.current.rotation.z = m.lean * 0.5;
     }
 
     // Look towards the cursor (screen right is the character's left), or,
     // off duty, nod slowly along to whatever's in the headphones.
     const yaw = interactive ? clamp(-pointerState.x * 0.6, -0.6, 0.6) : Math.sin(t * 0.4) * 0.25;
-    const pitch = interactive ? clamp(pointerState.y * 0.35, -0.25, 0.35) : 0.12 + Math.sin(t * 3.2) * 0.06;
+    const pitch = interactive
+      ? clamp(pointerState.y * 0.35 - m.lean * 0.8 - waveAmount * 0.1, -0.35, 0.35)
+      : 0.12 + Math.sin(t * 3.2) * 0.06;
     m.yaw += (yaw - m.yaw) * k;
     m.pitch += (pitch - m.pitch) * k;
     if (head.current) {
@@ -114,22 +195,30 @@ export function Character({
       m.blink = t;
       m.nextBlink = t + 2.5 + Math.random() * 3;
     }
+    // Happy ^ ^ eyes while waving, otherwise the round ones (which blink).
+    const happy = waveAmount > 0.35;
     if (eyes.current) {
       const b = t - m.blink;
+      eyes.current.visible = !happy;
       eyes.current.scale.y = b < 0.13 ? 0.15 : 1;
     }
+    if (happyEyes.current) happyEyes.current.visible = happy;
 
-    // Wave for 1.6 s after the event.
-    if (rightArm.current) {
-      const since = performance.now() / 1000 - m.wave;
-      const waving = since >= 0 && since < 1.6;
-      const target = waving ? -2.5 + Math.sin(since * 12) * 0.35 : -0.12;
-      rightArm.current.rotation.z += (target - rightArm.current.rotation.z) * (1 - Math.exp(-delta * 10));
-    }
+    // Arms: hang by the sides, or go up and flap while waving.
+    const ease = 1 - Math.exp(-delta * 14);
+    const armTo = (arm: Group | null, fore: Group | null, side: 1 | -1, phase: number) => {
+      if (!arm) return;
+      const rest = 0.12 * side;
+      const up = 2.75 * side;
+      arm.rotation.z += (rest + (up - rest) * waveAmount - arm.rotation.z) * ease;
+      if (fore) fore.rotation.z += (waveAmount * Math.sin(since * 12 + phase) * 0.55 * side - fore.rotation.z) * ease;
+    };
+    armTo(rightArm.current, rightFore.current, -1, 0);
+    armTo(leftArm.current, leftFore.current, 1, 1.4);
 
     // Mic light follows the "voice" (only the HQ Adi speaks).
     if (interactive) {
-      voiceState.level = Math.max(0, voiceState.level - delta * 2.2);
+      voiceState.level = Math.max(voiceState.level - delta * 2.2, waveAmount, 0);
       if (micTip.current) {
         mats.mic.color.copy(micColors.dim).lerp(micColors.bright, voiceState.level);
         micTip.current.scale.setScalar(1 + voiceState.level * 0.6);
@@ -167,17 +256,25 @@ export function Character({
         <capsuleGeometry args={[0.078, 0.085, 4, 12]} />
       </mesh>
 
-      {/* arms: left hangs, right can wave (pivot at the shoulder) */}
-      <group position={[0.1, 0.33, 0]} rotation-z={0.12}>
-        <mesh position-y={-0.07} material={mats.hoodie}>
-          <capsuleGeometry args={[0.026, 0.1, 3, 8]} />
-        </mesh>
-      </group>
-      <group ref={rightArm} position={[-0.1, 0.33, 0]} rotation-z={-0.12}>
-        <mesh position-y={-0.07} material={mats.hoodie}>
-          <capsuleGeometry args={[0.026, 0.1, 3, 8]} />
-        </mesh>
-      </group>
+      {/* arms, pivoting at the shoulder, each with a forearm that flaps when waving */}
+      {([
+        [leftArm, leftFore, 0.1, 0.12],
+        [rightArm, rightFore, -0.1, -0.12],
+      ] as const).map(([arm, fore, x, rest]) => (
+        <group key={x} ref={arm} position={[x, 0.33, 0]} rotation-z={rest}>
+          <mesh position-y={-0.05} material={mats.hoodie}>
+            <capsuleGeometry args={[0.026, 0.06, 3, 8]} />
+          </mesh>
+          <group ref={fore} position-y={-0.1}>
+            <mesh position-y={-0.045} material={mats.hoodie}>
+              <capsuleGeometry args={[0.024, 0.05, 3, 8]} />
+            </mesh>
+            <mesh position-y={-0.1} material={mats.skin}>
+              <sphereGeometry args={[0.027, 10, 8]} />
+            </mesh>
+          </group>
+        </group>
+      ))}
 
       {/* head, with headphones and mic */}
       <group ref={head} position-y={0.385}>
@@ -193,6 +290,14 @@ export function Character({
             {[-0.03, 0.03].map((x) => (
               <mesh key={x} position-x={x} material={mats.lime}>
                 <capsuleGeometry args={[0.009, 0.016, 2, 6]} />
+              </mesh>
+            ))}
+          </group>
+          {/* happy ^ ^ eyes, shown instead of the round ones while waving */}
+          <group ref={happyEyes} position={[0, 0.002, 0.104]} visible={false}>
+            {[-0.03, 0.03].map((x) => (
+              <mesh key={x} position-x={x} material={mats.lime}>
+                <torusGeometry args={[0.017, 0.006, 6, 12, Math.PI]} />
               </mesh>
             ))}
           </group>

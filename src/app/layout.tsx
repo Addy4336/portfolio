@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Unbounded } from "next/font/google";
 import { site } from "@content/site";
+import { CityHover } from "@/components/CityHover";
 import { Nav } from "@/components/Nav";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import { assignDistricts } from "@/lib/districts";
@@ -67,6 +68,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             Skip to content
           </a>
           <Nav />
+          <CityHover />
           <div id="main">{children}</div>
         </div>
       </body>

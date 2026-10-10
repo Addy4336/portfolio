@@ -99,3 +99,23 @@ export function stopAmbience() {
   a.master.gain.linearRampToValueAtTime(0, a.ctx.currentTime + 0.6);
   window.setTimeout(() => a.ctx.close(), 700);
 }
+
+/** A short happy three-note chirp, only if the visitor has turned the sound on. */
+export function chirp() {
+  const a = current;
+  if (!a) return;
+  const now = a.ctx.currentTime;
+  [784, 988, 1319].forEach((freq, i) => {
+    const osc = a.ctx.createOscillator();
+    const env = a.ctx.createGain();
+    osc.type = "triangle";
+    osc.frequency.value = freq;
+    const start = now + i * 0.07;
+    env.gain.setValueAtTime(0, start);
+    env.gain.linearRampToValueAtTime(0.07, start + 0.01);
+    env.gain.exponentialRampToValueAtTime(0.0001, start + 0.2);
+    osc.connect(env).connect(a.master);
+    osc.start(start);
+    osc.stop(start + 0.25);
+  });
+}

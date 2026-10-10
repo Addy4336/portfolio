@@ -269,3 +269,9 @@ html[data-tier="0"] .stage-grid {
     scroll-behavior: auto !important;
   }
 }
+
+/* Over a building in the 3D city the bare page behind the text is clickable. */
+html[data-city-hover] body,
+html[data-city-hover] section {
+  cursor: pointer;
+}

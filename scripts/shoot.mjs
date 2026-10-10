@@ -24,6 +24,16 @@ const ALL = [
   { name: "hero-desktop", path: "/?tier=2", device: desktop, scroll: null, wait: 6000 },
   { name: "about-desktop", path: "/?tier=2", device: desktop, scroll: ["about", 0.9], wait: 6000 },
   { name: "about-late-desktop", path: "/?tier=2", device: desktop, scroll: ["about", 1.6], wait: 6000 },
+  // Adi greets you once the page settles on About; settle = ms to wait after the scroll (the wave starts about 0.5 s in).
+  { name: "wave-desktop", path: "/?tier=2", device: desktop, scroll: ["about", 0.9], settle: 1700, wait: 6000 },
+  { name: "wave-phone", path: "/?tier=1", device: phone, scroll: ["about", 0.9], settle: 1700, wait: 6000 },
+  // Hover (mouse: [x, y] in CSS px): the city lights up the thing under the cursor.
+  { name: "hover-hq-desktop", path: "/?tier=2", device: desktop, scroll: null, mouse: [1050, 330], wait: 6000 },
+  { name: "hover-studio-desktop", path: "/?tier=2", device: desktop, scroll: ["cam:district-studio", 0.3], mouse: [980, 560], wait: 6000 },
+  // click: true also presses the mouse at that spot, which scrolls the page to whatever was clicked.
+  { name: "click-studio-desktop", path: "/?tier=2", device: desktop, scroll: null, mouse: [1230, 330], click: true, settle: 4000, wait: 6000 },
+  { name: "click-hq-desktop", path: "/?tier=2", device: desktop, scroll: null, mouse: [1050, 330], click: true, settle: 4000, wait: 6000 },
+  { name: "hover-adi-desktop", path: "/?tier=2", device: desktop, scroll: ["about", 0.9], mouse: [380, 600], wait: 6000 },
   { name: "hero-phone", path: "/?tier=1", device: phone, scroll: null, wait: 6000 },
   { name: "about-phone", path: "/?tier=1", device: phone, scroll: ["about", 0.9], wait: 6000 },
   { name: "about-late-phone", path: "/?tier=1", device: phone, scroll: ["about", 1.7], wait: 6000 },
@@ -106,7 +116,7 @@ async function main() {
       await sleep(shot.wait);
       if (typeof shot.scroll === "number") {
         await send("Runtime.evaluate", { expression: `window.scrollTo(0, ${shot.scroll}); window.dispatchEvent(new Event('scroll'));` });
-        await sleep(2500);
+        await sleep(shot.settle ?? 2500);
       } else if (shot.scroll) {
         const [id, frac] = shot.scroll;
         // "cam:<key>" targets a [data-cam] section; anything else is an element id.
@@ -114,7 +124,21 @@ async function main() {
         await send("Runtime.evaluate", {
           expression: `(() => { const el = document.querySelector(${JSON.stringify(selector)}); const top = el.getBoundingClientRect().top + scrollY; window.scrollTo(0, top + innerHeight * ${frac}); window.dispatchEvent(new Event('scroll')); })()`,
         });
-        await sleep(2500);
+        await sleep(shot.settle ?? 2500);
+      }
+      if (shot.mouse) {
+        const [mx, my] = shot.mouse;
+        for (const [x, y] of [[mx - 40, my - 20], [mx, my]]) {
+          await send("Input.dispatchMouseEvent", { type: "mouseMoved", x, y, pointerType: "mouse" });
+          await sleep(120);
+        }
+        await sleep(900);
+        if (shot.click) {
+          for (const type of ["mousePressed", "mouseReleased"]) {
+            await send("Input.dispatchMouseEvent", { type, x: mx, y: my, button: "left", clickCount: 1, pointerType: "mouse" });
+          }
+          await sleep(shot.settle ?? 2500);
+        }
       }
       if (shot.bench) {
         const { result } = await send("Runtime.evaluate", {
