@@ -7,15 +7,17 @@ import { scrollToTarget } from "@/components/SmoothScroll";
 import { DISTRICT_NAMES, type CityProject, type DistrictId } from "@/lib/districts";
 import { hoverState, type CityTarget } from "@/lib/hover-state";
 import { isCityTarget, listenToPointer, pointerState } from "@/lib/pointer-state";
+import { STUDIO_ASK_EVENT } from "@/lib/studio-state";
 import { WAVE_EVENT } from "@/lib/voice-state";
 import { site } from "@content/site";
 import { ADI_POSITION } from "./city/Character";
 import { blockCentre } from "./city/layout";
 import { OFFCLOCK_CENTRE } from "./city/OffClock";
+import { ALEX_LOCAL, studioToWorld } from "./city/StudioExtras";
 import { palette } from "./palette";
 
 /** `small` targets sit inside a bigger one (the portal in the Studio, Adi on the plaza) and win whenever the ray touches them. */
-type Target = CityTarget & { box: Box3; half: number; action?: "wave"; href?: string; small?: true };
+type Target = CityTarget & { box: Box3; half: number; action?: "wave" | "ask"; href?: string; small?: true; ringY?: number };
 
 const box = (cx: number, cy: number, cz: number, hx: number, hy: number, hz: number) =>
   new Box3(new Vector3(cx - hx, cy - hy, cz - hz), new Vector3(cx + hx, cy + hy, cz + hz));
@@ -50,16 +52,29 @@ function buildTargets(projects: CityProject[], portrait: boolean): Target[] {
   // the Studio's "try it live" gate (see StudioPortal), turned like its district
   const live = projects.find((p) => p.district === "studio" && p.live);
   if (live?.live) {
-    const [sx, sz] = blockCentre("studio");
-    const gate = new Vector3(portrait ? 1 : -1, 0.26, -1.15).applyAxisAngle(new Vector3(0, 1, 0), Math.atan2(-sx, -sz));
+    const gate = studioToWorld([portrait ? 1 : -1, 0.26, -1.15]);
     out.push({
       id: "studio-portal",
       title: `Try ${live.title} live`,
       hint: "Opens the real app",
       href: live.live,
       small: true,
-      box: box(sx + gate.x, gate.y + 0.1, sz + gate.z, 0.3, 0.5, 0.3),
+      box: box(gate.x, gate.y + 0.1, gate.z, 0.3, 0.5, 0.3),
       half: 0.3,
+    });
+  }
+  // Alex, the interviewer, once the Studio has its interview set
+  if (projects.some((p) => p.district === "studio" && p.screen)) {
+    const alex = studioToWorld(ALEX_LOCAL);
+    out.push({
+      id: "studio-alex",
+      title: "Alex · AI interviewer",
+      hint: "Click for a real question",
+      action: "ask",
+      small: true,
+      ringY: 0.26, // the studio floor, not the street
+      box: box(alex.x, alex.y, alex.z, 0.2, 0.2, 0.2),
+      half: 0.2,
     });
   }
   out.push({
@@ -132,7 +147,7 @@ export function CityPicker({ projects }: { projects: CityProject[] }) {
   const tmp = useMemo(() => ({ ndc: new Vector2(), hit: new Vector3() }), []);
   const ring = useRef<Mesh>(null);
   const label = useRef<HTMLElement | null>(null);
-  const glow = useRef({ x: 0, z: 0, scale: 1, opacity: 0, id: "" });
+  const glow = useRef({ x: 0, y: 0.06, z: 0, scale: 1, opacity: 0, id: "" });
 
   const ringGeo = useMemo(() => {
     const g = new RingGeometry(0.92, 1, 4, 1, Math.PI / 4);
@@ -184,6 +199,7 @@ export function CityPicker({ projects }: { projects: CityProject[] }) {
       );
       if (!hit) return;
       if (hit.href) window.open(hit.href, "_blank", "noopener");
+      else if (hit.action === "ask") window.dispatchEvent(new Event(STUDIO_ASK_EVENT));
       else if (hit.action === "wave") window.dispatchEvent(new Event(WAVE_EVENT));
       else if (hit.scrollTo) flyTo(hit.scrollTo);
     };
@@ -228,6 +244,7 @@ export function CityPicker({ projects }: { projects: CityProject[] }) {
       if (g.id !== hit.id) {
         if (g.opacity < 0.05) {
           g.x = c.x;
+          g.y = hit.ringY ?? 0.06;
           g.z = c.z;
           g.scale = hit.half;
         }
@@ -235,6 +252,7 @@ export function CityPicker({ projects }: { projects: CityProject[] }) {
       }
       const k = 1 - Math.exp(-delta * 14);
       g.x += (c.x - g.x) * k;
+      g.y += ((hit.ringY ?? 0.06) - g.y) * k;
       g.z += (c.z - g.z) * k;
       g.scale += (hit.half * 1.18 - g.scale) * k;
     }
@@ -242,7 +260,7 @@ export function CityPicker({ projects }: { projects: CityProject[] }) {
     const r = ring.current;
     if (r) {
       r.visible = g.opacity > 0.01;
-      r.position.set(g.x, 0.06, g.z);
+      r.position.set(g.x, g.y, g.z);
       r.scale.setScalar(g.scale * 1.41);
       ringMat.opacity = g.opacity;
     }

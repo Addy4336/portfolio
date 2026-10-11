@@ -19,7 +19,8 @@ import { blockCentre } from "./layout";
 import { StaticBatch } from "../StaticBatch";
 import { Scaffold } from "./Scaffold";
 import { Sign } from "./Sign";
-import { StudioBubble, StudioPortal, StudioScreen } from "./StudioExtras";
+import { studio } from "@/lib/studio-state";
+import { StudioBubble, StudioPortal, StudioScreen, StudioSet } from "./StudioExtras";
 
 function useMats() {
   return useMemo(
@@ -63,9 +64,9 @@ function Studio({ project, mats }: { project?: CityProject; mats: Mats }) {
   );
   useFrame(({ clock }) => {
     rings.current?.children.forEach((child, i) => {
-      const phase = (clock.elapsedTime * 0.5 + i / 3) % 1;
+      const phase = (clock.elapsedTime * (0.5 + studio.speaking * 0.6) + i / 3) % 1;
       child.scale.setScalar(0.3 + phase * 1.4);
-      ringMats[i].opacity = (1 - phase) * 0.7;
+      ringMats[i].opacity = (1 - phase) * (0.35 + studio.speaking * 0.5);
     });
   });
   const figure = (x: number, facing: number) => (
@@ -89,19 +90,25 @@ function Studio({ project, mats }: { project?: CityProject; mats: Mats }) {
       <mesh position-y={0.55} material={mats.body}>
         <boxGeometry args={[1.9, 1.1, 1.3]} />
       </mesh>
-      {/* the studio window on the outward face, with two silhouettes at the desk */}
-      <mesh position={[0, 0.55, -0.655]} rotation-y={Math.PI} material={mats.warm}>
-        <planeGeometry args={[1.5, 0.62]} />
-      </mesh>
-      <mesh position={[0, 0.36, -0.69]} material={mats.dark}>
-        <boxGeometry args={[0.5, 0.04, 0.12]} />
-      </mesh>
-      {figure(-0.42, Math.PI / 2)}
-      {figure(0.42, -Math.PI / 2)}
+      {project?.screen ? (
+        <StudioSet />
+      ) : (
+        <>
+        {/* the studio window on the outward face, with two silhouettes at the desk */}
+        <mesh position={[0, 0.55, -0.655]} rotation-y={Math.PI} material={mats.warm}>
+          <planeGeometry args={[1.5, 0.62]} />
+        </mesh>
+        <mesh position={[0, 0.36, -0.69]} material={mats.dark}>
+          <boxGeometry args={[0.5, 0.04, 0.12]} />
+        </mesh>
+        {figure(-0.42, Math.PI / 2)}
+        {figure(0.42, -Math.PI / 2)}
+        </>
+      )}
       {/* roof: ON AIR sign and an antenna sending sound rings */}
       <Sign lines={["● on air"]} width={0.62} position={[0.55, 1.19, -0.55]} billboard={false} rotationY={Math.PI} />
       {project?.screen && <StudioScreen screen={project.screen} position={[-0.15, 1.58, -0.32]} />}
-      {project?.screen && side < 0 && <StudioBubble position={[1.3 * side, 1.15, -1.0]} width={1.15} />}
+      {project?.screen && side < 0 && <StudioBubble position={[1.0 * side, 1.42, -1.05]} width={1.15} />}
       {project?.live && <StudioPortal position={[side, 0.04, -1.15]} />}
       <mesh position={[0.8, 1.4, 0.1]} material={mats.dark}>
         <cylinderGeometry args={[0.02, 0.03, 0.6, 6]} />

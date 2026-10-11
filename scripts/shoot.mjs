@@ -40,6 +40,17 @@ const ALL = [
   { name: "work-iq-video-desktop", path: "/work/interviewiq/?tier=2", device: desktop, scroll: 760, settle: 4500, wait: 6000 },
   { name: "work-iq-video-phone", path: "/work/interviewiq/?tier=1", device: phone, scroll: 900, settle: 4500, wait: 6000 },
   { name: "hover-portal-desktop", path: "/?tier=2", device: desktop, scroll: ["cam:district-studio", 0.3], mouse: [1285, 705], settle: 6500, wait: 6000 },
+  // steps: [expression, ms to wait after it] run in order after the scroll, for multi-page journeys.
+  { name: "studio-roundtrip", path: "/?tier=2", device: desktop, scroll: ["cam:district-studio", 0.3], settle: 5000, wait: 6000, steps: [
+    ["document.querySelector('a[href=\"/work/interviewiq/\"]').click()", 5000],
+    ["document.querySelector('a[href^=\"/#district-studio\"]').click()", 6000],
+  ] },
+  { name: "studio-back", path: "/?tier=2", device: desktop, scroll: ["cam:district-studio", 0.3], settle: 5000, wait: 6000, steps: [
+    ["document.querySelector('a[href=\"/work/interviewiq/\"]').click()", 5000],
+    ["history.back()", 6000],
+  ] },
+  { name: "hover-alex-desktop", path: "/?tier=2", device: desktop, scroll: ["cam:district-studio", 0.3], mouse: [915, 640], settle: 6500, wait: 6000 },
+  { name: "click-alex-desktop", path: "/?tier=2", device: desktop, scroll: ["cam:district-studio", 0.3], mouse: [915, 640], click: true, settle: 1800, wait: 6000 },
   { name: "hero-phone", path: "/?tier=1", device: phone, scroll: null, wait: 6000 },
   { name: "about-phone", path: "/?tier=1", device: phone, scroll: ["about", 0.9], wait: 6000 },
   { name: "about-late-phone", path: "/?tier=1", device: phone, scroll: ["about", 1.7], wait: 6000 },
@@ -131,6 +142,10 @@ async function main() {
           expression: `(() => { const el = document.querySelector(${JSON.stringify(selector)}); const top = el.getBoundingClientRect().top + scrollY; window.scrollTo(0, top + innerHeight * ${frac}); window.dispatchEvent(new Event('scroll')); })()`,
         });
         await sleep(shot.settle ?? 2500);
+      }
+      for (const [expression, ms] of shot.steps ?? []) {
+        await send("Runtime.evaluate", { expression });
+        await sleep(ms);
       }
       if (shot.mouse) {
         const [mx, my] = shot.mouse;
