@@ -1,6 +1,6 @@
 "use client";
 
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { useLayoutEffect, useMemo, useRef } from "react";
 import {
   AdditiveBlending,
@@ -19,6 +19,7 @@ import { blockCentre } from "./layout";
 import { StaticBatch } from "../StaticBatch";
 import { Scaffold } from "./Scaffold";
 import { Sign } from "./Sign";
+import { StudioBubble, StudioPortal, StudioScreen } from "./StudioExtras";
 
 function useMats() {
   return useMemo(
@@ -52,6 +53,9 @@ const pct = (p: number) => `${Math.round(p * 100)}% built`;
 
 /** InterviewIQ: a broadcast studio — lit window, two figures facing each other, ON AIR, sound rings. */
 function Studio({ project, mats }: { project?: CityProject; mats: Mats }) {
+  // Props sit on the free side of the building: right of it beside the text panel on
+  // desktop, left of it on a portrait phone (where the panel is below instead).
+  const side = useThree((t) => t.size.width / t.size.height < 0.9) ? 1 : -1;
   const rings = useRef<Group>(null);
   const ringMats = useMemo(
     () => [0, 1, 2].map(() => new MeshBasicMaterial({ color: palette.signal, toneMapped: false, transparent: true, depthWrite: false })),
@@ -95,11 +99,14 @@ function Studio({ project, mats }: { project?: CityProject; mats: Mats }) {
       {figure(-0.42, Math.PI / 2)}
       {figure(0.42, -Math.PI / 2)}
       {/* roof: ON AIR sign and an antenna sending sound rings */}
-      <Sign lines={["● on air"]} width={0.62} position={[-0.45, 1.27, -0.4]} billboard={false} rotationY={Math.PI} />
-      <mesh position={[0.5, 1.4, 0.1]} material={mats.dark}>
+      <Sign lines={["● on air"]} width={0.62} position={[0.55, 1.19, -0.55]} billboard={false} rotationY={Math.PI} />
+      {project?.screen && <StudioScreen screen={project.screen} position={[-0.15, 1.58, -0.32]} />}
+      {project?.screen && side < 0 && <StudioBubble position={[1.3 * side, 1.15, -1.0]} width={1.15} />}
+      {project?.live && <StudioPortal position={[side, 0.04, -1.15]} />}
+      <mesh position={[0.8, 1.4, 0.1]} material={mats.dark}>
         <cylinderGeometry args={[0.02, 0.03, 0.6, 6]} />
       </mesh>
-      <group ref={rings} position={[0.5, 1.72, 0.1]} userData={{ dynamic: true }}>
+      <group ref={rings} position={[0.8, 1.72, 0.1]} userData={{ dynamic: true }}>
         {ringMats.map((m, i) => (
           <mesh key={i} rotation-x={Math.PI / 2} material={m}>
             <torusGeometry args={[0.25, 0.01, 6, 36]} />

@@ -27,6 +27,20 @@ export const projectSchema = z.object({
       demo: z.url().optional(),
     })
     .default({}),
+  /**
+   * A demo recording. `src` is the full clip embedded on the case-study page,
+   * `poster` its still frame (also used where video can't play). `board` is an
+   * optional shorter, smaller silent loop for the screen on the project's
+   * building in the 3D city. All paths are under /public.
+   */
+  video: z
+    .object({
+      src: z.string().startsWith("/"),
+      poster: z.string().startsWith("/"),
+      board: z.string().startsWith("/").optional(),
+      caption: z.string().optional(),
+    })
+    .optional(),
   /** Path under /public, e.g. /projects/interviewiq/cover.webp */
   cover: z.string().startsWith("/").optional(),
   /** Optional per-project colour for its sign and highlights. */

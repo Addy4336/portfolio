@@ -14,7 +14,13 @@ export const DISTRICT_NAMES: Record<DistrictId, string> = {
 export type CityProject = Pick<
   Project,
   "slug" | "title" | "tagline" | "status" | "progress" | "category" | "accent"
-> & { district: DistrictId };
+> & {
+  district: DistrictId;
+  /** Where the building's "try it" portal leads, if the project is live. */
+  live?: string;
+  /** Poster and silent loop for the building's video screen. */
+  screen?: { poster: string; board: string };
+};
 
 const FLAGSHIP_DISTRICTS: DistrictId[] = ["studio", "estate", "lab"];
 
@@ -39,6 +45,8 @@ export function assignDistricts(projects: Project[]): CityProject[] {
     category: p.category,
     accent: p.accent,
     district,
+    live: p.links.live,
+    screen: p.video?.board ? { poster: p.video.poster, board: p.video.board } : undefined,
   });
 
   const flagship = projects.filter((p) => p.category === "flagship");

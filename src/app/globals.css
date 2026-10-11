@@ -258,6 +258,20 @@ html[data-tier="0"] .stage-grid {
   font-size: 0.9em;
   color: var(--signal);
 }
+.prose-city pre {
+  margin: 0 0 1.5rem;
+  padding: 1.1rem 1.25rem;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: rgb(255 255 255 / 0.03);
+  line-height: 1.6;
+}
+.prose-city pre code {
+  font-size: 0.8rem;
+  color: var(--paper-dim);
+  white-space: pre;
+}
 
 @media (prefers-reduced-motion: reduce) {
   *,

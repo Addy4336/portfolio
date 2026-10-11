@@ -34,6 +34,12 @@ const ALL = [
   { name: "click-studio-desktop", path: "/?tier=2", device: desktop, scroll: null, mouse: [1230, 330], click: true, settle: 4000, wait: 6000 },
   { name: "click-hq-desktop", path: "/?tier=2", device: desktop, scroll: null, mouse: [1050, 330], click: true, settle: 4000, wait: 6000 },
   { name: "hover-adi-desktop", path: "/?tier=2", device: desktop, scroll: ["about", 0.9], mouse: [380, 600], wait: 6000 },
+  // The Studio screen only plays once its district is near, so give the video a few seconds.
+  { name: "studio-media-desktop", path: "/?tier=2", device: desktop, scroll: ["cam:district-studio", 0.3], settle: 6500, wait: 6000 },
+  { name: "studio-media-phone", path: "/?tier=1", device: phone, scroll: ["cam:district-studio", 0.3], settle: 6500, wait: 6000 },
+  { name: "work-iq-video-desktop", path: "/work/interviewiq/?tier=2", device: desktop, scroll: 760, settle: 4500, wait: 6000 },
+  { name: "work-iq-video-phone", path: "/work/interviewiq/?tier=1", device: phone, scroll: 900, settle: 4500, wait: 6000 },
+  { name: "hover-portal-desktop", path: "/?tier=2", device: desktop, scroll: ["cam:district-studio", 0.3], mouse: [1285, 705], settle: 6500, wait: 6000 },
   { name: "hero-phone", path: "/?tier=1", device: phone, scroll: null, wait: 6000 },
   { name: "about-phone", path: "/?tier=1", device: phone, scroll: ["about", 0.9], wait: 6000 },
   { name: "about-late-phone", path: "/?tier=1", device: phone, scroll: ["about", 1.7], wait: 6000 },

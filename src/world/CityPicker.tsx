@@ -14,7 +14,8 @@ import { blockCentre } from "./city/layout";
 import { OFFCLOCK_CENTRE } from "./city/OffClock";
 import { palette } from "./palette";
 
-type Target = CityTarget & { box: Box3; half: number; action?: "wave" };
+/** `small` targets sit inside a bigger one (the portal in the Studio, Adi on the plaza) and win whenever the ray touches them. */
+type Target = CityTarget & { box: Box3; half: number; action?: "wave"; href?: string; small?: true };
 
 const box = (cx: number, cy: number, cz: number, hx: number, hy: number, hz: number) =>
   new Box3(new Vector3(cx - hx, cy - hy, cz - hz), new Vector3(cx + hx, cy + hy, cz + hz));
@@ -27,7 +28,7 @@ const DISTRICT_HINT: Record<string, string> = {
 };
 
 /** Every pickable thing is just a box; the ray is tested against each once per frame. */
-function buildTargets(projects: CityProject[]): Target[] {
+function buildTargets(projects: CityProject[], portrait: boolean): Target[] {
   const out: Target[] = [];
   for (const id of ["studio", "estate", "lab", "workshop"] as DistrictId[]) {
     const [x, z] = blockCentre(id);
@@ -44,6 +45,21 @@ function buildTargets(projects: CityProject[]): Target[] {
       scrollTo: `#district-${id}`,
       box: box(x, 1.1, z, 1.6, 1.3, 1.6),
       half: 1.6,
+    });
+  }
+  // the Studio's "try it live" gate (see StudioPortal), turned like its district
+  const live = projects.find((p) => p.district === "studio" && p.live);
+  if (live?.live) {
+    const [sx, sz] = blockCentre("studio");
+    const gate = new Vector3(portrait ? 1 : -1, 0.26, -1.15).applyAxisAngle(new Vector3(0, 1, 0), Math.atan2(-sx, -sz));
+    out.push({
+      id: "studio-portal",
+      title: `Try ${live.title} live`,
+      hint: "Opens the real app",
+      href: live.live,
+      small: true,
+      box: box(sx + gate.x, gate.y + 0.1, sz + gate.z, 0.3, 0.5, 0.3),
+      half: 0.3,
     });
   }
   out.push({
@@ -75,6 +91,7 @@ function buildTargets(projects: CityProject[]): Target[] {
     title: site.name,
     hint: "Say hi",
     action: "wave",
+    small: true,
     box: box(ax, 0.3, az, 0.2, 0.32, 0.2),
     half: 0.16,
   });
@@ -109,7 +126,8 @@ function flyTo(selector: string) {
  */
 export function CityPicker({ projects }: { projects: CityProject[] }) {
   const camera = useThree((s) => s.camera);
-  const targets = useMemo(() => buildTargets(projects), [projects]);
+  const portrait = useThree((s) => s.size.width / s.size.height < 0.9);
+  const targets = useMemo(() => buildTargets(projects, portrait), [projects, portrait]);
   const ray = useMemo(() => new Raycaster(), []);
   const tmp = useMemo(() => ({ ndc: new Vector2(), hit: new Vector3() }), []);
   const ring = useRef<Mesh>(null);
@@ -141,7 +159,8 @@ export function CityPicker({ projects }: { projects: CityProject[] }) {
     for (const t of targets) {
       if (!ray.ray.intersectBox(t.box, tmp.hit)) continue;
       const d = tmp.hit.distanceToSquared(ray.ray.origin);
-      if (d < bestDist) {
+      if (best?.small && !t.small) continue;
+      if ((t.small && !best?.small) || d < bestDist) {
         best = t;
         bestDist = d;
       }
@@ -164,7 +183,8 @@ export function CityPicker({ projects }: { projects: CityProject[] }) {
         (e.clientY / window.innerHeight) * 2 - 1,
       );
       if (!hit) return;
-      if (hit.action === "wave") window.dispatchEvent(new Event(WAVE_EVENT));
+      if (hit.href) window.open(hit.href, "_blank", "noopener");
+      else if (hit.action === "wave") window.dispatchEvent(new Event(WAVE_EVENT));
       else if (hit.scrollTo) flyTo(hit.scrollTo);
     };
     window.addEventListener("click", onClick);

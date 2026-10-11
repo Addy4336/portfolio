@@ -55,7 +55,21 @@ describe("assignDistricts", () => {
   it("only exposes serialisable city fields", () => {
     const [c] = assignDistricts([p("a", "side", "auto", 1)]);
     expect(Object.keys(c).sort()).toEqual(
-      ["accent", "category", "district", "progress", "slug", "status", "tagline", "title"].sort(),
+      ["accent", "category", "district", "live", "progress", "screen", "slug", "status", "tagline", "title"].sort(),
     );
+  });
+
+  it("hands a project's live link and video screen to the city", () => {
+    const withMedia: Project = {
+      ...p("iq", "flagship", "studio", 1),
+      links: { live: "https://example.com/" },
+      video: { src: "/v.mp4", poster: "/p.jpg", board: "/b.mp4" },
+    };
+    const [c] = assignDistricts([withMedia]);
+    expect(c.live).toBe("https://example.com/");
+    expect(c.screen).toEqual({ poster: "/p.jpg", board: "/b.mp4" });
+    // a clip without a board loop gets no screen
+    const [d] = assignDistricts([{ ...withMedia, video: { src: "/v.mp4", poster: "/p.jpg" } }]);
+    expect(d.screen).toBeUndefined();
   });
 });

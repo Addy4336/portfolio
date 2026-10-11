@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ArrowLeft, ArrowRight, CodeXml, Globe } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DemoVideo } from "@/components/DemoVideo";
 import { assignDistricts, DISTRICT_NAMES } from "@/lib/districts";
 import { getProject, getProjects } from "@/lib/projects";
 import { statusLabel } from "@/lib/project-schema";
@@ -99,6 +100,7 @@ export default async function WorkPage({ params }: { params: Promise<Params> }) 
       <div className="relative px-4 pb-24 sm:px-8">
         <article className="prose-city mx-auto max-w-3xl rounded-3xl border border-line bg-void/92 px-5 py-10 sm:px-12 sm:py-14">
           <p className="text-lg leading-relaxed text-paper">{project.summary}</p>
+          {project.video && <DemoVideo src={project.video.src} poster={project.video.poster} caption={project.video.caption} />}
           <Body />
         </article>
 

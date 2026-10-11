@@ -12,6 +12,14 @@ district: studio
 year: 2026
 role: Solo build. Product, voice pipeline, web app and infrastructure
 stack: [Next.js 16, React 19, Pipecat, LiveKit, Deepgram Flux, Groq, Supabase]
+links:
+  live: https://interview-iq-mu-nine.vercel.app/
+  github: https://github.com/Addy4336/InterviewIQ
+video:
+  src: /projects/interviewiq/demo.mp4
+  poster: /projects/interviewiq/poster.jpg
+  board: /projects/interviewiq/billboard.mp4
+  caption: "A real interview, recorded from the live app: set-up, the interviewer joining, and the first two questions. Set-up and connecting are sped up; the captions are the interviewer speaking."
 order: 1
 ---
 
@@ -27,6 +35,17 @@ The browser streams audio over WebRTC through LiveKit. A Pipecat pipeline per in
 runs speech-to-text (Deepgram Flux), decides when you've finished talking, asks an LLM
 (Groq `gpt-oss-120b`) for the next move, and speaks it back with Deepgram Aura-2. Every
 completed turn is saved, and when you end the session the LLM writes a scored report.
+
+```text
+Browser (Next.js 16)  ─►  Supabase  (auth, Postgres with row-level security)
+   │   └─► voice-server  POST /spawn  (shared secret)
+   └─ WebRTC audio ◄─► LiveKit ◄─► bot.py  (Pipecat, one per interview)
+
+mic ─► STT (Deepgram Flux) ─► turn detection ─► interview conductor
+    ─► LLM (Groq gpt-oss-120b) ─► TTS (Deepgram Aura-2) ─► speaker
+
+every turn ─► saved to Postgres        end ─► the LLM writes the scored report
+```
 
 ## Decisions that mattered
 
@@ -49,3 +68,14 @@ completed turn is saved, and when you end the session the LLM writes a scored re
 Replies take roughly three seconds: end-of-turn detection, a deliberate patience hold,
 then the LLM and the first audio. One bot process per interview is fine for a handful of
 concurrent sessions, not for scale.
+
+## What I'd change next
+
+- **Close the three-second gap.** The patience hold is tunable; the next step is starting
+  speech earlier and measuring each stage of the reply separately.
+- **A pool of bots, not one process per interview.** That is the line between "a handful of
+  people at once" and anything bigger.
+- **Real microphones.** Noise, echo and accents still need human testing; I tuned mostly in
+  quiet rooms.
+- **Count filler words from the audio.** Speech models drop most "um" and "uh", so the
+  count in the report under-reports.
