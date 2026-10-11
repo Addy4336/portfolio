@@ -392,7 +392,7 @@ export function StudioSet() {
       <mesh position={[-0.42, 0.285, az]} material={mats.stool}>
         <cylinderGeometry args={[0.06, 0.05, 0.085, 14]} />
       </mesh>
-      <group position={[-0.42, 0.242, az]} scale={0.82}>
+      <group position={[-0.42, 0.242, az]} scale={0.94}>
         <Character position={[0, 0.0, 0]} facing={Math.PI - 0.55} sitting interactive={false} />
       </group>
 
