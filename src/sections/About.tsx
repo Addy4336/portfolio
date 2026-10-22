@@ -61,8 +61,14 @@ export function About({ story, readouts }: Props) {
               <LiveTranscript paragraphs={story} trackRef={track} />
             </div>
             <dl className="mt-3 grid grid-cols-2 gap-2 sm:mt-4">
-              {readouts.map((r) => (
-                <div key={r.label} className="rounded-xl border border-line bg-void/85 px-3 py-2 sm:px-4 sm:py-3">
+              {readouts.map((r, i) => (
+                <div
+                  key={r.label}
+                  // a lone last tile takes the whole row
+                  className={`rounded-xl border border-line bg-void/85 px-3 py-2 sm:px-4 sm:py-3 ${
+                    readouts.length % 2 && i === readouts.length - 1 ? "col-span-2" : ""
+                  }`}
+                >
                   <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-paper-dim sm:text-[11px]">
                     {r.label}
                   </dt>

@@ -7,17 +7,19 @@ import { scrollToTarget } from "@/components/SmoothScroll";
 import { DISTRICT_NAMES, type CityProject, type DistrictId } from "@/lib/districts";
 import { hoverState, type CityTarget } from "@/lib/hover-state";
 import { isCityTarget, listenToPointer, pointerState } from "@/lib/pointer-state";
+import { BOOKING_EVENT, VILLA_TOGGLE_EVENT } from "@/lib/estate-state";
 import { STUDIO_ASK_EVENT } from "@/lib/studio-state";
 import { WAVE_EVENT } from "@/lib/voice-state";
 import { site } from "@content/site";
 import { ADI_POSITION } from "./city/Character";
-import { blockCentre } from "./city/layout";
 import { OFFCLOCK_CENTRE } from "./city/OffClock";
+import { bookingLocal, ESTATE_PORTAL_LOCAL, VILLA_LOCAL } from "./city/EstateLive";
+import { blockCentre, districtToWorld } from "./city/layout";
 import { ALEX_LOCAL, studioToWorld } from "./city/StudioExtras";
 import { palette } from "./palette";
 
 /** `small` targets sit inside a bigger one (the portal in the Studio, Adi on the plaza) and win whenever the ray touches them. */
-type Target = CityTarget & { box: Box3; half: number; action?: "wave" | "ask"; href?: string; small?: true; ringY?: number };
+type Target = CityTarget & { box: Box3; half: number; action?: "wave" | "ask" | "villa" | "book"; href?: string; small?: true; ringY?: number; noRing?: true };
 
 const box = (cx: number, cy: number, cz: number, hx: number, hy: number, hz: number) =>
   new Box3(new Vector3(cx - hx, cy - hy, cz - hz), new Vector3(cx + hx, cy + hy, cz + hz));
@@ -50,17 +52,49 @@ function buildTargets(projects: CityProject[], portrait: boolean): Target[] {
     });
   }
   // the Studio's "try it live" gate (see StudioPortal), turned like its district
-  const live = projects.find((p) => p.district === "studio" && p.live);
-  if (live?.live) {
-    const gate = studioToWorld([portrait ? 1 : -1, 0.26, -1.15]);
+  // each live district's "try it live" gate (see LivePortal), turned like its district
+  const portals: { district: DistrictId; local: [number, number, number] }[] = [
+    { district: "studio", local: [portrait ? 1 : -1, 0.26, -1.15] },
+    { district: "estate", local: [ESTATE_PORTAL_LOCAL[0], 0.26, ESTATE_PORTAL_LOCAL[2]] },
+  ];
+  for (const { district, local } of portals) {
+    const live = projects.find((p) => p.district === district && p.live);
+    // the Estate only has its gate once it's the finished villa
+    if (!live?.live || (district === "estate" && !(live.status === "live" && live.progress >= 1))) continue;
+    const gate = districtToWorld(district, local);
     out.push({
-      id: "studio-portal",
+      id: `${district}-portal`,
       title: `Try ${live.title} live`,
       hint: "Opens the real app",
       href: live.live,
       small: true,
       box: box(gate.x, gate.y + 0.1, gate.z, 0.3, 0.5, 0.3),
       half: 0.3,
+    });
+  }
+  const estate = projects.find((p) => p.district === "estate");
+  if (estate && estate.status === "live" && estate.progress >= 1) {
+    const v = districtToWorld("estate", VILLA_LOCAL);
+    out.push({
+      id: "estate-villa",
+      title: "The villa",
+      hint: "Click to lift the roof",
+      action: "villa",
+      small: true,
+      box: box(v.x, v.y, v.z, 0.6, 0.42, 0.6),
+      half: 0.75,
+      ringY: 0.07,
+    });
+    const c = districtToWorld("estate", bookingLocal(portrait));
+    out.push({
+      id: "estate-booking",
+      title: "Book the demo villa",
+      hint: "Try booking it twice",
+      action: "book",
+      small: true,
+      box: box(c.x, c.y, c.z, 0.38, 0.26, 0.38),
+      half: 0.35,
+      noRing: true, // it floats; a ring on the ground would point at nothing
     });
   }
   // Alex, the interviewer, once the Studio has its interview set
@@ -200,6 +234,8 @@ export function CityPicker({ projects }: { projects: CityProject[] }) {
       if (!hit) return;
       if (hit.href) window.open(hit.href, "_blank", "noopener");
       else if (hit.action === "ask") window.dispatchEvent(new Event(STUDIO_ASK_EVENT));
+      else if (hit.action === "villa") window.dispatchEvent(new Event(VILLA_TOGGLE_EVENT));
+      else if (hit.action === "book") window.dispatchEvent(new Event(BOOKING_EVENT));
       else if (hit.action === "wave") window.dispatchEvent(new Event(WAVE_EVENT));
       else if (hit.scrollTo) flyTo(hit.scrollTo);
     };
@@ -256,7 +292,7 @@ export function CityPicker({ projects }: { projects: CityProject[] }) {
       g.z += (c.z - g.z) * k;
       g.scale += (hit.half * 1.18 - g.scale) * k;
     }
-    g.opacity += ((hit ? 0.9 : 0) - g.opacity) * (1 - Math.exp(-delta * 12));
+    g.opacity += ((hit && !hit.noRing ? 0.9 : 0) - g.opacity) * (1 - Math.exp(-delta * 12));
     const r = ring.current;
     if (r) {
       r.visible = g.opacity > 0.01;

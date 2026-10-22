@@ -13,9 +13,7 @@ import {
   MeshLambertMaterial,
   Object3D,
   SRGBColorSpace,
-  TextureLoader,
   Vector3,
-  VideoTexture,
 } from "three";
 import { chirp } from "@/lib/ambience";
 import { pointerState } from "@/lib/pointer-state";
@@ -29,119 +27,14 @@ import {
 } from "@/lib/studio-state";
 import { palette } from "../palette";
 import { Character } from "./Character";
-import { blockCentre } from "./layout";
-import { Sign } from "./Sign";
-
-/** The recording is cropped to the app window: 1904 × 880. */
-const SCREEN_ASPECT = 1904 / 880;
-
-/** Sections whose camera shot frames the Studio (home page and its case study). */
-const STUDIO_SECTIONS = '[data-cam="district-studio"],[data-cam="work-studio"]';
+import { districtToWorld } from "./layout";
 
 /** Where Alex stands in the Studio's own frame (local −z faces out of the city). */
 export const ALEX_LOCAL: [number, number, number] = [0.42, 0.5, -0.8];
 
-/** A point in the Studio's frame, in world coordinates (the district is turned to face its camera). */
-export function studioToWorld(local: Vector3 | [number, number, number]): Vector3 {
-  const [sx, sz] = blockCentre("studio");
-  const v = Array.isArray(local) ? new Vector3(...local) : local.clone();
-  v.applyAxisAngle(new Vector3(0, 1, 0), Math.atan2(-sx, -sz));
-  return v.add(new Vector3(sx, 0, sz));
-}
-
-/**
- * A screen on the Studio's roof that loops a short silent clip of a real
- * interview. The video is only fetched and played while the Studio is near
- * the viewport, and the poster frame shows until it is actually playing, so
- * it costs nothing the rest of the time.
- */
-export function StudioScreen({
-  screen,
-  position,
-  width = 1.3,
-}: {
-  screen: { poster: string; board: string };
-  position: [number, number, number];
-  width?: number;
-}) {
-  const height = width / SCREEN_ASPECT;
-  const material = useMemo(() => new MeshBasicMaterial({ color: "#000000", toneMapped: false }), []);
-  const rim = useMemo(() => new MeshBasicMaterial({ color: palette.signal, toneMapped: false }), []);
-  const body = useMemo(() => new MeshBasicMaterial({ color: "#10131f" }), []);
-
-  useEffect(() => {
-    const poster = new TextureLoader().load(screen.poster, (t) => {
-      t.colorSpace = SRGBColorSpace;
-      // don't replace a video frame that has already started
-      if (!material.map) {
-        material.map = t;
-        material.color.set("#ffffff");
-        material.needsUpdate = true;
-      }
-    });
-
-    const video = document.createElement("video");
-    video.muted = true;
-    video.loop = true;
-    video.playsInline = true;
-    video.preload = "none";
-    video.crossOrigin = "anonymous";
-    video.src = screen.board;
-    const texture = new VideoTexture(video);
-    texture.colorSpace = SRGBColorSpace;
-    const onPlaying = () => {
-      material.map = texture;
-      material.color.set("#ffffff");
-      material.needsUpdate = true;
-    };
-    video.addEventListener("playing", onPlaying);
-
-    const check = () => {
-      const el = document.querySelector(STUDIO_SECTIONS);
-      let near = false;
-      if (el) {
-        const r = el.getBoundingClientRect();
-        near = r.bottom > -window.innerHeight * 0.5 && r.top < window.innerHeight * 1.5;
-      }
-      if (near && !document.hidden) {
-        if (video.paused) {
-          video.preload = "auto";
-          void video.play().catch(() => {});
-        }
-      } else if (!video.paused) {
-        video.pause();
-      }
-    };
-    check();
-    const timer = window.setInterval(check, 600);
-
-    return () => {
-      window.clearInterval(timer);
-      video.removeEventListener("playing", onPlaying);
-      video.pause();
-      video.removeAttribute("src");
-      video.load();
-      texture.dispose();
-      poster.dispose();
-    };
-  }, [screen.poster, screen.board, material]);
-
-  return (
-    // Faces out of the district (local −z), like the studio window.
-    <group position={position} rotation-y={Math.PI} userData={{ dynamic: true }}>
-      <mesh position-z={-0.012} material={rim}>
-        <boxGeometry args={[width + 0.08, height + 0.08, 0.02]} />
-      </mesh>
-      <mesh position-z={0.01} material={material}>
-        <planeGeometry args={[width, height]} />
-      </mesh>
-      {[-0.42, 0.42].map((x) => (
-        <mesh key={x} position={[x, -height / 2 - 0.09, -0.012]} material={body}>
-          <boxGeometry args={[0.04, 0.18, 0.04]} />
-        </mesh>
-      ))}
-    </group>
-  );
+/** A point in the Studio's frame, in world coordinates. */
+export function studioToWorld(local: [number, number, number]): Vector3 {
+  return districtToWorld("studio", local);
 }
 
 const WALL_W = 750;
@@ -539,41 +432,3 @@ export function StudioBubble({ position, width = 1.25 }: { position: [number, nu
   );
 }
 
-/** A little glowing gate on the plaza: "try it live". Clicking it opens the real app (see CityPicker). */
-export function StudioPortal({ position }: { position: [number, number, number] }) {
-  const glow = useRef<Mesh>(null);
-  const lime = useMemo(() => new MeshBasicMaterial({ color: palette.signal, toneMapped: false }), []);
-  const veil = useMemo(
-    () =>
-      new MeshBasicMaterial({
-        color: palette.violet,
-        transparent: true,
-        opacity: 0.4,
-        blending: AdditiveBlending,
-        depthWrite: false,
-        toneMapped: false,
-      }),
-    [],
-  );
-  useFrame(({ clock }) => {
-    const t = clock.elapsedTime;
-    veil.opacity = 0.32 + Math.sin(t * 2.2) * 0.12;
-    if (glow.current) glow.current.scale.y = 0.94 + Math.sin(t * 3) * 0.04;
-  });
-  return (
-    <group position={position} rotation-y={Math.PI}>
-      {[-0.22, 0.22].map((x) => (
-        <mesh key={x} position={[x, 0.26, 0]} material={lime}>
-          <boxGeometry args={[0.035, 0.52, 0.035]} />
-        </mesh>
-      ))}
-      <mesh position={[0, 0.53, 0]} material={lime}>
-        <boxGeometry args={[0.49, 0.035, 0.035]} />
-      </mesh>
-      <mesh ref={glow} position={[0, 0.27, 0]} material={veil} userData={{ dynamic: true }}>
-        <planeGeometry args={[0.4, 0.5]} />
-      </mesh>
-      <Sign lines={["try it live"]} width={0.62} position={[0, 0.78, 0]} />
-    </group>
-  );
-}

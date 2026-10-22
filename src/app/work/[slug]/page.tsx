@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ArrowLeft, ArrowRight, CodeXml, Globe } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, CodeXml, Globe } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DemoVideo } from "@/components/DemoVideo";
@@ -74,7 +74,7 @@ export default async function WorkPage({ params }: { params: Promise<Params> }) 
                 </li>
               ))}
             </ul>
-            {(project.links.live || project.links.github || project.links.demo) && (
+            {(project.links.live || project.links.github || project.links.demo || project.links.docs) && (
               <div className="mt-6 flex flex-wrap gap-2">
                 {project.links.live && (
                   <a href={project.links.live} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full bg-signal px-4 py-2 text-sm font-medium text-void">
@@ -84,6 +84,11 @@ export default async function WorkPage({ params }: { params: Promise<Params> }) 
                 {project.links.demo && (
                   <a href={project.links.demo} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm text-paper hover:border-paper/40">
                     Watch the demo
+                  </a>
+                )}
+                {project.links.docs && (
+                  <a href={project.links.docs} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm text-paper hover:border-paper/40">
+                    <BookOpen size={15} aria-hidden /> API docs
                   </a>
                 )}
                 {project.links.github && (
@@ -100,7 +105,14 @@ export default async function WorkPage({ params }: { params: Promise<Params> }) 
       <div className="relative px-4 pb-24 sm:px-8">
         <article className="prose-city mx-auto max-w-3xl rounded-3xl border border-line bg-void/92 px-5 py-10 sm:px-12 sm:py-14">
           <p className="text-lg leading-relaxed text-paper">{project.summary}</p>
-          {project.video && <DemoVideo src={project.video.src} poster={project.video.poster} caption={project.video.caption} />}
+          {project.video && (
+            <DemoVideo
+              src={project.video.src}
+              poster={project.video.poster}
+              caption={project.video.caption}
+              aspect={project.video.aspect ? String(project.video.aspect) : undefined}
+            />
+          )}
           <Body />
         </article>
 

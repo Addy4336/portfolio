@@ -20,7 +20,10 @@ import { StaticBatch } from "../StaticBatch";
 import { Scaffold } from "./Scaffold";
 import { Sign } from "./Sign";
 import { studio } from "@/lib/studio-state";
-import { StudioBubble, StudioPortal, StudioScreen, StudioSet } from "./StudioExtras";
+import { EstateLive } from "./EstateLive";
+import { LivePortal } from "./LivePortal";
+import { StudioBubble, StudioSet } from "./StudioExtras";
+import { VideoScreen } from "./VideoScreen";
 
 function useMats() {
   return useMemo(
@@ -107,9 +110,16 @@ function Studio({ project, mats }: { project?: CityProject; mats: Mats }) {
       )}
       {/* roof: ON AIR sign and an antenna sending sound rings */}
       <Sign lines={["● on air"]} width={0.62} position={[0.55, 1.19, -0.55]} billboard={false} rotationY={Math.PI} />
-      {project?.screen && <StudioScreen screen={project.screen} position={[-0.15, 1.58, -0.32]} />}
+      {project?.screen && (
+        <VideoScreen
+          screen={project.screen}
+          position={[-0.15, 1.58, -0.32]}
+          aspect={1904 / 880}
+          sections='[data-cam="district-studio"],[data-cam="work-studio"]'
+        />
+      )}
       {project?.screen && side < 0 && <StudioBubble position={[1.0 * side, 1.42, -1.05]} width={1.15} />}
-      {project?.live && <StudioPortal position={[side, 0.04, -1.15]} />}
+      {project?.live && <LivePortal position={[side, 0.04, -1.15]} />}
       <mesh position={[0.8, 1.4, 0.1]} material={mats.dark}>
         <cylinderGeometry args={[0.02, 0.03, 0.6, 6]} />
       </mesh>
@@ -136,7 +146,7 @@ function Studio({ project, mats }: { project?: CityProject; mats: Mats }) {
   );
 }
 
-/** NextStateAI: a row of houses with holo price tags; unbuilt ones are under scaffolding. */
+/** The Estate while its project is still being built: houses with holo price tags, unbuilt ones under scaffolding (see EstateLive for the finished villa). */
 function Estate({ project, mats }: { project?: CityProject; mats: Mats }) {
   const tags = useRef<Group>(null);
   const scanner = useRef<Group>(null);
@@ -409,7 +419,15 @@ export function Districts({ projects }: { projects: CityProject[] }) {
         <Studio project={one("studio")} mats={mats} />
       </DistrictFrame>
       <DistrictFrame id="estate">
-        <Estate project={one("estate")} mats={mats} />
+        {(() => {
+          const estate = one("estate");
+          // a finished, live project gets the villa; anything still in progress keeps the building site
+          return estate && estate.status === "live" && estate.progress >= 1 ? (
+            <EstateLive project={estate} shared={{ slab: mats.slab, warm: mats.warm, dark: mats.dark }} />
+          ) : (
+            <Estate project={estate} mats={mats} />
+          );
+        })()}
       </DistrictFrame>
       <DistrictFrame id="lab">
         <Lab project={one("lab")} mats={mats} />

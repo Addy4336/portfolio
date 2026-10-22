@@ -25,6 +25,8 @@ export const projectSchema = z.object({
       live: z.url().optional(),
       github: z.url().optional(),
       demo: z.url().optional(),
+      /** Public API docs, e.g. a Swagger page. */
+      docs: z.url().optional(),
     })
     .default({}),
   /**
@@ -38,6 +40,10 @@ export const projectSchema = z.object({
       src: z.string().startsWith("/"),
       poster: z.string().startsWith("/"),
       board: z.string().startsWith("/").optional(),
+      /** Still for the board loop, when it is cropped differently from `poster`. */
+      boardPoster: z.string().startsWith("/").optional(),
+      /** Width ÷ height of `src`; defaults to the InterviewIQ recording's 1904 ÷ 880. */
+      aspect: z.number().positive().optional(),
       caption: z.string().optional(),
     })
     .optional(),

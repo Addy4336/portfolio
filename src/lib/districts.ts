@@ -46,7 +46,7 @@ export function assignDistricts(projects: Project[]): CityProject[] {
     accent: p.accent,
     district,
     live: p.links.live,
-    screen: p.video?.board ? { poster: p.video.poster, board: p.video.board } : undefined,
+    screen: p.video?.board ? { poster: p.video.boardPoster ?? p.video.poster, board: p.video.board } : undefined,
   });
 
   const flagship = projects.filter((p) => p.category === "flagship");

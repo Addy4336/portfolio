@@ -1,0 +1,96 @@
+---
+title: NexState
+tagline: Furnished rentals with a 3D home tour, plain-English search and online booking
+summary: >-
+  A full-stack rentals platform for the Indian market, built solo. Visitors step inside an
+  interactive 3D villa, search in plain English and book with a server-priced quote through
+  Razorpay; staff run listings, bookings, payments and content from an admin CMS. Live on
+  free tiers.
+status: live
+progress: 1
+category: flagship
+district: estate
+year: 2026
+role: Solo build. Design, front end, back end, database, 3D, deployment and the product video
+stack: [Next.js 16, React 19, three.js, React Three Fiber, Elysia, Better Auth, Supabase, Razorpay]
+links:
+  live: https://nexstate-site.vercel.app/
+  github: https://github.com/Addy4336/Nexstate-
+  docs: https://nexstate-cms.vercel.app/api/docs
+video:
+  src: /projects/nexstate/demo.mp4
+  poster: /projects/nexstate/poster.jpg
+  board: /projects/nexstate/billboard.mp4
+  boardPoster: /projects/nexstate/billboard-poster.jpg
+  aspect: 1.7778
+  caption: "The product video, made in code: an HTML timeline rendered frame by frame in headless Chrome and encoded with WebCodecs, with a soundtrack synthesised in the browser. Listings, prices and photos are demo content."
+order: 2
+---
+
+## What it is
+
+A white-label website and admin CMS for a furnished-rentals company in India. The brand,
+currency and copy live in one config file, so the same code can be re-skinned for another
+business.
+
+On the public site, a golden-hour video sets the tone. Below it, a "Take the tour" section
+lets you pick a room: the camera glides into a villa modelled entirely in code while the roof
+and front wall cut away to show the furnished interior, by day or at night. Search understands
+sentences like "3 bedrooms under 2 lakh a month". Property pages show live availability and a
+quote computed on the server, and booking reserves the dates atomically.
+
+```text
+Public site (Next.js 16)  ─►  Elysia API inside the admin app (OpenAPI docs)
+   │  3D tour: three.js + R3F, no model files       │  Better Auth, staff roles
+   │  search, quotes, booking ─────────────────────►│  Supabase Postgres + Storage
+   └─ Razorpay checkout ◄── order from the server quote ── signed webhook ──┘
+```
+
+## What I built
+
+- **Public website:** home, search, property pages, booking, an owners' returns calculator,
+  about, contact and a journal.
+- **The 3D villa tour:** the villa and its furniture are modelled in code, in metres.
+  Textures are drawn on a canvas at runtime, the cutaways use clipping planes, the camera
+  glides between views, and there is a day and a night light.
+- **Admin CMS and API:** dashboard, properties with photo and video upload, a rentals
+  calendar, leads, payments, blog, FAQs, users and roles, with Swagger docs.
+- **Payments:** a Razorpay order created from the server-side quote, a verified signature,
+  a signed webhook as a safety net, and conflict handling instead of double-booking.
+- **Database:** migrations, a row-locking booking function, and column whitelists so
+  private data never reaches the browser.
+- **Deployment:** two Vercel projects from one monorepo, the Supabase session pooler,
+  Vercel Cron and a GitHub Actions keep-alive.
+
+## Decisions that mattered
+
+- **A 3D scene that ran at 10 fps on an ordinary laptop.** Profiling showed about 1,000
+  draw calls. Merging static meshes per material, fixing a geometry leak and only redrawing
+  shadows while the camera moves brought it to 70 draw calls and 45–60 fps on an integrated
+  Intel GPU.
+- **No three.js on phones.** The overlay code is split so the main bundle never imports
+  three.js. Phones get pre-rendered stills of the same four views (0 KB of 3D), and desktops
+  download the scene only after the first interaction, as the section nears the screen.
+- **Cutaways that show real rooms.** The solid villa was rebuilt as hollow rooms, so two
+  animated clipping planes can take away the roof and front wall for each view.
+- **One source of truth for price.** The quote the visitor sees is the amount Razorpay
+  charges, and a Postgres function locks the property and rejects overlapping dates.
+- **Free-tier deployment.** Supabase's direct connection is IPv6-only, which Vercel can't
+  reach, so the API uses the session pooler with a small pool; a long-running cron process
+  became Vercel Cron behind a secret.
+- **A product video with no editor.** The video is code: a deterministic HTML timeline,
+  captured frame by frame, encoded with WebCodecs and wrapped by a hand-written MP4 writer.
+
+## Numbers
+
+- Draw calls in the tour: about **1,000 → 70**; **10 → 45–60 fps** on an integrated GPU.
+- **0 KB** of three.js shipped to phones.
+- Lighthouse **100** for accessibility, best practices and SEO on every audited page;
+  performance on the live site is **89** on desktop and **69** on mobile.
+- Tested at 375, 768, 1024 and 1440 px, keyboard friendly and reduced-motion aware.
+
+## Honest notes
+
+Listings, photos, reviews and headline figures on the site are illustrative demo content,
+and labelled as such. Payments run in Razorpay test mode, so no real money moves. The hero
+footage and photos are from Pexels and Unsplash, credited in the repo.

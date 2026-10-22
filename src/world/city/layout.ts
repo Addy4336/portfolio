@@ -1,3 +1,5 @@
+import { Vector3 } from "three";
+
 /**
  * The city plan, generated deterministically from a seed so it looks the same
  * on every visit and every device.
@@ -54,6 +56,18 @@ function mulberry32(seed: number) {
 export function blockCentre(id: BlockId): [number, number] {
   const [bx, bz] = BLOCKS[id];
   return [bx * 4, bz * 4];
+}
+
+/** How a district is turned in the city (see DistrictFrame): local −z faces out, towards its camera. */
+export function districtRotation(id: BlockId): number {
+  const [x, z] = blockCentre(id);
+  return Math.atan2(-x, -z);
+}
+
+/** A point in a district's own frame, in world coordinates. */
+export function districtToWorld(id: BlockId, local: [number, number, number]): Vector3 {
+  const [x, z] = blockCentre(id);
+  return new Vector3(...local).applyAxisAngle(new Vector3(0, 1, 0), districtRotation(id)).add(new Vector3(x, 0, z));
 }
 
 /** The edge-middle blocks hold the pipeline stations (see route.ts). */
