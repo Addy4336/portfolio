@@ -5,7 +5,7 @@
  */
 export const site = {
   /** The deployed address, e.g. "https://adi.is-a.dev". Used for links in search results and shares. */
-  url: "" as string,
+  url: "https://portfolio-plum-delta-43.vercel.app" as string,
   name: "Adi",
   role: "AI engineer",
   focus: ["Agentic AI", "Voice AI"],
