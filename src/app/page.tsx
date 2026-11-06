@@ -17,7 +17,7 @@ function readoutsFor(projects: Project[]): Readout[] {
     { label: "Focus", value: site.focus.join(" · ") },
     { label: "Live", value: titles("live") },
     { label: "Building", value: titles("building") },
-    { label: "Next", value: titles("research") },
+    { label: "Researching", value: titles("research") },
   ];
   return rows.filter((r) => r.value);
 }

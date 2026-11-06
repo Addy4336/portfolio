@@ -22,7 +22,7 @@ export const site = {
     "I'm Adi, an AI engineer and a student. I build agents you can actually talk to: systems that listen, work out what to do next, and then do it.",
     "The problems I like live where language models meet the real world. Turn-taking in a live conversation. A plan the model can't wander away from. A pipeline that answers before the silence gets awkward.",
     "I build on free tiers on purpose. When every token and every second of compute is rationed, you stop prompting and start engineering.",
-    "I just shipped a rentals platform with a 3D home tour, and I'm starting a research project. Everything I make ends up here, in the city.",
+    "I just shipped a rentals platform with a 3D home tour, and I'm running a study of when AI agents answer from rules that have already changed. Everything I make ends up here, in the city.",
   ],
   /**
    * "How I build": the four stages a voice-agent request goes through, shown

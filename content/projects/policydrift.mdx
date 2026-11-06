@@ -1,0 +1,77 @@
+---
+title: PolicyDrift
+tagline: Stale by default. When do RAG agents answer from a rule that has already changed?
+summary: >-
+  A pre-registered study of whether retrieval-augmented agents answer from the rule they
+  retrieved or the one they memorised: a human-verified benchmark of 42 real rule changes
+  across 14 Indian schemes in English, Hindi and Gujarati, four mitigations tested, and the
+  ones that worked shipped as a live assistant with validated citations and rule-change flags.
+status: research
+progress: 0.85
+category: flagship
+district: lab
+year: 2026
+role: Solo research and build. Benchmark, experiments, statistics and the assistant
+stack: [Python, FastAPI, Next.js, RAG, multilingual embeddings, LLM-as-judge, Gemini, Groq]
+links:
+  live: https://policydrift-lime.vercel.app/
+  github: https://github.com/Addy4336/policydrift
+order: 3
+---
+
+## The question
+
+Government rules change: loan limits, subsidy amounts, tax rates. A retrieval-augmented
+model can have the current rule in its context and still answer with an older one it learned
+in training. PolicyDrift measures how often that happens for Indian government schemes, in
+English, Hindi and Gujarati, and tests what stops it.
+
+![The PolicyDrift assistant answering a question about PM SVANidhi loans: a "this rule has changed" notice above the answer, the rule version used, and checks that every cited figure appears in an official source](/projects/policydrift/demo-answer.jpg)
+
+## What I built
+
+- **Data:** 46 official releases (PIB and ministries), each recorded with its URL and a
+  SHA-256 hash, chunked into 440 passages tagged with the dates their rule version was in
+  force.
+- **Benchmark:** 42 rule changes across 14 schemes; 85 human-verified items in three
+  languages, 255 questions in all. The split is by scheme, and the test split is frozen and
+  checksummed behind a loader guard.
+- **Experiments:** five retrieval conditions and four mitigations: a date-stamped prompt, a
+  validity statement, a conflict-checker agent and version-filtered retrieval. The hypotheses
+  and analysis were pre-registered and frozen with a git tag before the test run. Answers are
+  scored by a deterministic number matcher plus an LLM judge (κ = 0.83 against 60 stratified
+  human labels).
+- **The assistant:** FastAPI and Next.js. It applies the two mitigations that worked,
+  translates and routes Hindi and Gujarati questions, answers "as of" a chosen date, checks
+  that every cited number appears in an official source, flags when the rule has changed, and
+  declines out-of-scope questions instead of inventing answers (13 of 13 on a live
+  spot-check).
+
+## What the development split shows
+
+These come from the 28-item development split. They shaped the pre-registration, but they
+are **not the confirmatory results**: the frozen test split is still being run, and this page
+will be updated when it is.
+
+- Models know the old rules: 48–67% of closed-book answers give the outdated value.
+- With only the current version retrieved, stale answers drop to 0%. With both versions
+  retrieved, they come back (24%).
+- In plain RAG, 38 of 40 stale answers came from retrieval missing the current passage, not
+  from the model overriding it.
+- A one-line date-stamped prompt removed the remaining stale answers when the current rule
+  was in context (6.7% → 0%), matching a conflict-checker agent at half the LLM calls.
+- Hindi and Gujarati questions were not answered worse than English ones.
+
+## Engineering for reproducibility
+
+A cached, rate-limited LLM client; fact-clustered bootstrap confidence intervals, McNemar
+tests and Holm correction; 131 tests and strict mypy.
+
+## Honest limits
+
+- The development results rest on 28 items, and the pre-registered test results are pending.
+- Two of the three models share one provider (Gemini). gpt-oss-20b was dropped from the final
+  run because of free-tier throughput.
+- One person verified the benchmark and labelled the judge sample.
+- The hosted demo uses BM25 retrieval, because free hosting cannot load the embedding model;
+  the research uses e5-base. On free tiers an answer can take 2–15 seconds.

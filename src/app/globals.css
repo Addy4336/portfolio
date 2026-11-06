@@ -258,6 +258,14 @@ html[data-tier="0"] .stage-grid {
   font-size: 0.9em;
   color: var(--signal);
 }
+.prose-city img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 0 1.75rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+}
 .prose-city pre {
   margin: 0 0 1.5rem;
   padding: 1.1rem 1.25rem;
