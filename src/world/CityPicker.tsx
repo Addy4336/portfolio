@@ -8,18 +8,20 @@ import { DISTRICT_NAMES, type CityProject, type DistrictId } from "@/lib/distric
 import { hoverState, type CityTarget } from "@/lib/hover-state";
 import { isCityTarget, listenToPointer, pointerState } from "@/lib/pointer-state";
 import { BOOKING_EVENT, VILLA_TOGGLE_EVENT } from "@/lib/estate-state";
+import { LAB_ASOF_EVENT } from "@/lib/lab-state";
 import { STUDIO_ASK_EVENT } from "@/lib/studio-state";
 import { WAVE_EVENT } from "@/lib/voice-state";
 import { site } from "@content/site";
 import { ADI_POSITION } from "./city/Character";
 import { OFFCLOCK_CENTRE } from "./city/OffClock";
 import { bookingLocal, ESTATE_PORTAL_LOCAL, VILLA_LOCAL } from "./city/EstateLive";
+import { LAB_RAIL_LOCAL, labCardLocal, labPortalLocal } from "./city/LabLive";
 import { blockCentre, districtToWorld } from "./city/layout";
 import { ALEX_LOCAL, studioToWorld } from "./city/StudioExtras";
 import { palette } from "./palette";
 
 /** `small` targets sit inside a bigger one (the portal in the Studio, Adi on the plaza) and win whenever the ray touches them. */
-type Target = CityTarget & { box: Box3; half: number; action?: "wave" | "ask" | "villa" | "book"; href?: string; small?: true; ringY?: number; noRing?: true };
+type Target = CityTarget & { box: Box3; half: number; action?: "wave" | "ask" | "villa" | "book" | "asof"; href?: string; small?: true; ringY?: number; noRing?: true };
 
 const box = (cx: number, cy: number, cz: number, hx: number, hy: number, hz: number) =>
   new Box3(new Vector3(cx - hx, cy - hy, cz - hz), new Vector3(cx + hx, cy + hy, cz + hz));
@@ -56,6 +58,7 @@ function buildTargets(projects: CityProject[], portrait: boolean): Target[] {
   const portals: { district: DistrictId; local: [number, number, number] }[] = [
     { district: "studio", local: [portrait ? 1 : -1, 0.26, -1.15] },
     { district: "estate", local: [ESTATE_PORTAL_LOCAL[0], 0.26, ESTATE_PORTAL_LOCAL[2]] },
+    { district: "lab", local: [labPortalLocal(portrait)[0], 0.26, labPortalLocal(portrait)[2]] },
   ];
   for (const { district, local } of portals) {
     const live = projects.find((p) => p.district === district && p.live);
@@ -70,6 +73,31 @@ function buildTargets(projects: CityProject[], portrait: boolean): Target[] {
       small: true,
       box: box(gate.x, gate.y + 0.1, gate.z, 0.3, 0.5, 0.3),
       half: 0.3,
+    });
+  }
+  const research = projects.find((p) => p.district === "lab" && p.live);
+  if (research) {
+    const r = districtToWorld("lab", LAB_RAIL_LOCAL);
+    out.push({
+      id: "lab-timeline",
+      title: "Ask as of another date",
+      hint: "The rule changed on 27 Aug 2025",
+      action: "asof",
+      small: true,
+      box: box(r.x, r.y + 0.1, r.z, 0.85, 0.25, 0.85),
+      half: 1.1,
+      ringY: 0.06,
+    });
+    const c = districtToWorld("lab", labCardLocal(portrait));
+    out.push({
+      id: "lab-card",
+      title: "Ask as of another date",
+      hint: "Same question, other rule version",
+      action: "asof",
+      small: true,
+      box: box(c.x, c.y, c.z, 0.38, 0.26, 0.38),
+      half: 0.35,
+      noRing: true,
     });
   }
   const estate = projects.find((p) => p.district === "estate");
@@ -236,6 +264,7 @@ export function CityPicker({ projects }: { projects: CityProject[] }) {
       else if (hit.action === "ask") window.dispatchEvent(new Event(STUDIO_ASK_EVENT));
       else if (hit.action === "villa") window.dispatchEvent(new Event(VILLA_TOGGLE_EVENT));
       else if (hit.action === "book") window.dispatchEvent(new Event(BOOKING_EVENT));
+      else if (hit.action === "asof") window.dispatchEvent(new Event(LAB_ASOF_EVENT));
       else if (hit.action === "wave") window.dispatchEvent(new Event(WAVE_EVENT));
       else if (hit.scrollTo) flyTo(hit.scrollTo);
     };

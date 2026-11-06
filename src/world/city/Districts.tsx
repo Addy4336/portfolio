@@ -21,6 +21,7 @@ import { Scaffold } from "./Scaffold";
 import { Sign } from "./Sign";
 import { studio } from "@/lib/studio-state";
 import { EstateLive } from "./EstateLive";
+import { LabLive } from "./LabLive";
 import { LivePortal } from "./LivePortal";
 import { StudioBubble, StudioSet } from "./StudioExtras";
 import { VideoScreen } from "./VideoScreen";
@@ -430,7 +431,15 @@ export function Districts({ projects }: { projects: CityProject[] }) {
         })()}
       </DistrictFrame>
       <DistrictFrame id="lab">
-        <Lab project={one("lab")} mats={mats} />
+        {(() => {
+          const lab = one("lab");
+          // research with a live demo gets the rule archive; an empty plot keeps the observatory
+          return lab?.live ? (
+            <LabLive project={lab} shared={{ slab: mats.slab, body: mats.body, dark: mats.dark, lime: mats.lime }} />
+          ) : (
+            <Lab project={lab} mats={mats} />
+          );
+        })()}
       </DistrictFrame>
       <DistrictFrame id="workshop">
         <Workshop projects={projects.filter((p) => p.district === "workshop")} mats={mats} />
